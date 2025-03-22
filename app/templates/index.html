@@ -28,18 +28,18 @@
 
 <body class="bg-gray-100 h-screen">
     <!-- Header -->
-    <header class="bg-white shadow-md">
+    <!--header class="bg-white shadow-md">
         <div class="container mx-auto px-4 py-6 flex justify-between items-center">
             <div class="flex items-center">
                 <h1 class="text-2xl font-bold text-indigo-600">StudyFlow</h1>
                 <span class="ml-2 text-gray-500">Enhanced Learning</span>
             </div>
         </div>
-    </header>
+    </header-->
 
     <!-- Main Content -->
-    <main class="container mx-auto my-auto px-4 py-8 h-screen">
-        <div id="upload-section" class="mb-8">
+    <main class="w-full my-auto px-0 py-0 h-screen">
+        <div id="upload-section" class="mb-8 px-8 py-8">
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-4">Upload Your Materials</h2>
                 <p class="text-gray-600 mb-6">Upload PDFs or images of lecture slides, research papers, or study
@@ -57,9 +57,10 @@
             </div>
         </div>
 
-        <div id="document-viewer" class="hidden grid grid-cols-1 md:grid-cols-12 gap-6 h-screen">
+        <div id="document-viewer" class="hidden grid grid-cols-1 md:grid-cols-12 h-screen">
             <!-- Left Column: Document Pages (smaller) -->
-            <div class="md:col-span-2 bg-white p-2 rounded-lg shadow-md h-full">
+            <div class="md:col-span-2 bg-white p-2 shadow-md h-full">
+                <h1 class="text-lg font-bold text-indigo-600 mb-2 border-b">StudyFlow</h1>
                 <h3 class="font-semibold text-xs mb-1 pb-1 border-b">Pages</h3>
                 <div id="page-thumbnails" class="space-y-1 overflow-y-auto max-h-[calc(100vh)]">
                     <!-- Page thumbnails will be dynamically added here -->
@@ -67,7 +68,7 @@
             </div>
 
             <!-- Middle Column: Current Page (larger) -->
-            <div class="md:col-span-6 bg-white p-2 rounded-lg shadow-md h-full">
+            <div class="md:col-span-6 bg-white p-2 shadow-md h-full">
                 <h3 class="font-semibold text-lg mb-1 pb-1 border-b">Document</h3>
                 <div id="current-page-content" class="overflow-y-auto h-screen">
                     <!-- Current page content will be displayed here -->
@@ -75,7 +76,7 @@
             </div>
 
             <!-- Right Column: Summary, Notes, Q&A -->
-            <div class="md:col-span-4 bg-white p-3 rounded-lg shadow-md h-full">
+            <div class="md:col-span-4 bg-white p-3 shadow-md h-full">
                 <div class="flex justify-between items-center mb-1 pb-1 border-b">
                     <h3 class="font-semibold text-xs">Study Tools</h3>
                     <div class="space-x-1">
