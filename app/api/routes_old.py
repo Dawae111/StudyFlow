@@ -4,7 +4,6 @@ import uuid
 from werkzeug.utils import secure_filename
 from app.utils.file_processor import process_file, process_pdf, process_image, save_processed_data
 from app.utils.document_analyzer import generate_summary, get_answer, get_available_models, validate_model_name, DEFAULT_QA_MODEL
-from app.utils.gcs_utils import upload_file_to_gcs
 import glob
 import json
 import tempfile
@@ -261,16 +260,10 @@ def upload_file():
             ext = os.path.splitext(filename)[1].lower()
             new_filename = f"{file_id}{ext}"
             
-            # Save the file locally
+            # Save the file
             upload_folder = current_app.config['UPLOAD_FOLDER']
             file_path = os.path.join(upload_folder, new_filename)
             file.save(file_path)
-            
-            # Reset file stream to beginning before uploading to GCS
-            file.seek(0)
-            
-            # Upload to GCS with the same filename
-            gcs_url = upload_file_to_gcs(file, file_id, ext[1:], original_filename=filename)
             
             # Process the file based on its type
             processed_data = process_file(file_path)
@@ -278,12 +271,11 @@ def upload_file():
             # Save processed data
             save_processed_data(file_id, processed_data)
             
-            # Return success response with the file ID and GCS URL
+            # Return success response with the file ID for future reference
             return jsonify({
-                'file_id': file_id,
+                'file_id': file_id,  # Use consistent snake_case for field names
                 'message': 'File uploaded and processed successfully',
-                'filename': filename,
-                'file_url': gcs_url # added
+                'filename': filename
             }), 200
         else:
             print(f"File type not allowed: {file.filename}")
