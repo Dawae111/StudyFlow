@@ -3,6 +3,7 @@ import { DocumentViewer } from './documentViewer.js';
 import { StudyTools } from './studyTools.js';
 import { UIManager } from './uiUtils.js';
 import { QAHandler } from './qaHandler.js';
+import { FileListHandler } from './fileList.js';
 
 export class AppController {
     constructor(elements) {
@@ -22,9 +23,10 @@ export class AppController {
         document.addEventListener('summariesUpdated', (e) => {
             this.handleSummariesUpdated(e.detail.documentData);
         });
+        this.fileListHandler = new FileListHandler(elements, this.handleFileSelected.bind(this));
     }
 
-    init() {
+    init() {    
         console.log("StudyFlow App initializing...");
 
         // Check server connection
@@ -44,8 +46,9 @@ export class AppController {
     handleFileProcessed(documentData, fileId) {
         console.log(`Processing file with ID: ${fileId}`);
 
-        // Hide upload section, show document viewer
+        // Hide upload section and header, show document viewer
         this.elements.uploadSection.classList.add('hidden');
+        this.elements.header.classList.add('hidden');
         this.elements.documentViewer.classList.remove('hidden');
 
         // Set file ID for both components
@@ -76,6 +79,44 @@ export class AppController {
             document.dispatchEvent(event);
 
             console.log("Dispatched pageChanged event for page:", currentPage.page_number);
+        }
+    }
+
+    handleFileSelected(file) {
+        console.log(`Selected file: ${file.name}`);
+        // Hide upload section and header, show document viewer
+        this.elements.uploadSection.classList.add('hidden');
+        this.elements.header.classList.add('hidden');
+        this.elements.documentViewer.classList.remove('hidden');
+
+        // Set file ID for both components
+        this.currentFileId = file.id;
+        this.studyTools.setFileId(file.id);
+
+        // Fetch and render document data
+        this.fetchAndRenderDocument(file.id);
+    }
+
+    async fetchAndRenderDocument(fileId) {
+        try {
+            const documentData = await api.fetchDocumentData(fileId);
+            const currentPage = this.documentViewer.renderDocument(documentData);
+
+            if (currentPage) {
+                this.studyTools.updateContent(currentPage);
+                this.qaHandler.initializeWithCurrentFile(fileId, currentPage.page_number);
+
+                const event = new CustomEvent('pageChanged', {
+                    detail: {
+                        page: currentPage,
+                        pageId: String(currentPage.page_number)
+                    }
+                });
+                document.dispatchEvent(event);
+            }
+        } catch (error) {
+            console.error('Error fetching document:', error);
+            alert('Error loading document. Please try again.');
         }
     }
 

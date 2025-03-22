@@ -2,10 +2,14 @@ import { AppController } from './modules/appController.js';
 
 document.addEventListener('DOMContentLoaded', function () {
     const elements = {
+        // Header element
+        header: document.getElementById('app-header'),
+
         // File Upload elements
         dropArea: document.getElementById('drop-area'),
         fileInput: document.getElementById('file-input'),
         uploadSection: document.getElementById('upload-section'),
+        fileList: document.getElementById('file-list'),
         loadingOverlay: document.getElementById('loading-overlay'),
         loadingMessage: document.getElementById('loading-message'),
 

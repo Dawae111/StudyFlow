@@ -4,7 +4,7 @@ import uuid
 from werkzeug.utils import secure_filename
 from app.utils.file_processor import process_file, process_pdf, process_image, save_processed_data
 from app.utils.document_analyzer import generate_summary, get_answer, get_available_models, validate_model_name, DEFAULT_QA_MODEL
-from app.utils.gcs_utils import upload_file_to_gcs
+from app.utils.gcs_utils import upload_file_to_gcs, list_files_in_bucket
 import glob
 import json
 import tempfile
@@ -539,4 +539,20 @@ def get_models():
         return jsonify(model_info), 200
     except Exception as e:
         print(f"Error retrieving model information: {str(e)}")
-        return jsonify({'error': 'Error retrieving model information'}), 500 
+        return jsonify({'error': 'Error retrieving model information'}), 500
+
+@api.route('/files', methods=['GET'])
+def list_files():
+    """Get list of files from GCS bucket"""
+    try:
+        files = list_files_in_bucket()
+        return jsonify({
+            'files': files,
+            'success': True
+        }), 200
+    except Exception as e:
+        print(f"Error listing files: {str(e)}")
+        return jsonify({
+            'error': f'Error listing files: {str(e)}',
+            'success': False
+        }), 500 
