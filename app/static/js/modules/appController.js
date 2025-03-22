@@ -4,6 +4,7 @@ import { StudyTools } from './studyTools.js';
 import { UIManager } from './uiUtils.js';
 import { QAHandler } from './qaHandler.js';
 import { FileListHandler } from './fileList.js';
+import { api } from './api.js';
 
 export class AppController {
     constructor(elements) {
@@ -94,14 +95,16 @@ export class AppController {
         this.studyTools.setFileId(file.id);
 
         // Fetch and render document data
+        console.log(`Fetching and rendering document data for file: ${file.id}`);
         this.fetchAndRenderDocument(file.id);
     }
 
     async fetchAndRenderDocument(fileId) {
         try {
             const documentData = await api.fetchDocumentData(fileId);
+            console.log(`Document data: ${documentData}`);
             const currentPage = this.documentViewer.renderDocument(documentData);
-
+            console.log(`Current page: ${currentPage}`);
             if (currentPage) {
                 this.studyTools.updateContent(currentPage);
                 this.qaHandler.initializeWithCurrentFile(fileId, currentPage.page_number);
