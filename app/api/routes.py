@@ -83,6 +83,7 @@ def get_summaries(file_id):
     import os
     import json
     import tempfile
+    from flask import current_app, url_for
     
     # Try to load the processed data from temporary storage
     temp_dir = os.path.join(tempfile.gettempdir(), 'studyflow')
@@ -98,9 +99,21 @@ def get_summaries(file_id):
         # Make the path relative to static folder for serving
         relative_path = os.path.relpath(original_file_path, os.path.join(current_app.root_path, 'static'))
         file_url = f"/static/{relative_path}"
+        
+        # Add direct URL for downloading
+        download_url = f"/static/{relative_path}"
+        
+        # For PDF files, we might want to convert pages to images (future enhancement)
+        pdf_page_images = []
+        if file_type == 'pdf':
+            # In a production app, we'd extract and save images for each page
+            # For this MVP, we'll just provide the PDF URL directly
+            pass
     else:
         file_type = "unknown"
         file_url = None
+        download_url = None
+        pdf_page_images = []
     
     if os.path.exists(file_path):
         try:
@@ -109,6 +122,8 @@ def get_summaries(file_id):
                 # Add file information
                 data['file_type'] = file_type
                 data['file_url'] = file_url
+                data['download_url'] = download_url
+                data['pdf_page_images'] = pdf_page_images
                 return jsonify(data), 200
         except Exception as e:
             print(f"Error loading file data: {str(e)}")
@@ -117,6 +132,8 @@ def get_summaries(file_id):
     return jsonify({
         'file_type': file_type,
         'file_url': file_url,
+        'download_url': download_url,
+        'pdf_page_images': pdf_page_images,
         'pages': [
             {
                 'page_number': 1,
