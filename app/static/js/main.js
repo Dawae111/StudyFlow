@@ -2,6 +2,11 @@ import { FileUploadHandler } from './modules/fileUpload.js';
 import { DocumentViewer } from './modules/documentViewer.js';
 import { StudyTools } from './modules/studyTools.js';
 
+// Declare these at the top of the file, outside any functions
+let documentData = null;
+let currentFileId = null;
+let currentPageId = 1;
+
 document.addEventListener('DOMContentLoaded', function () {
     const elements = {
         // File Upload elements
@@ -10,12 +15,12 @@ document.addEventListener('DOMContentLoaded', function () {
         uploadSection: document.getElementById('upload-section'),
         loadingOverlay: document.getElementById('loading-overlay'),
         loadingMessage: document.getElementById('loading-message'),
-        
+
         // Document Viewer elements
         documentViewer: document.getElementById('document-viewer'),
         pageThumbnails: document.getElementById('page-thumbnails'),
         currentPageContent: document.getElementById('current-page-content'),
-        
+
         // Study Tools elements
         summaryContent: document.getElementById('summary-content'),
         qaContent: document.getElementById('qa-content'),
@@ -32,14 +37,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const viewer = new DocumentViewer(elements);
     const studyTools = new StudyTools(elements);
-    
+
     const fileHandler = new FileUploadHandler(elements, (documentData, fileId) => {
         elements.uploadSection.classList.add('hidden');
         elements.documentViewer.classList.remove('hidden');
-        
+
         const currentPage = viewer.renderDocument(documentData);
         studyTools.setFileId(fileId);
-        
+
         if (currentPage) {
             studyTools.updateContent(currentPage);
         }
@@ -69,9 +74,54 @@ document.addEventListener('DOMContentLoaded', function () {
     tabNotes.addEventListener('click', () => switchTab('notes'));
 
     // Q&A Functionality
-    askButton.addEventListener('click', askQuestion);
-    questionInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') askQuestion();
+    askButton.addEventListener('click', async () => {
+        const question = questionInput.value.trim();
+        if (!question) return;
+
+        // Add the question to the history
+        const questionElement = document.createElement('div');
+        questionElement.className = 'question-container p-4 bg-gray-50 rounded-lg';
+        questionElement.innerHTML = `
+            <p class="font-semibold">You: ${question}</p>
+            <div class="answer mt-2">
+                <p class="text-gray-500">Loading answer...</p>
+            </div>
+        `;
+        qaHistory.appendChild(questionElement);
+
+        // Clear the input
+        questionInput.value = '';
+
+        // Scroll to the bottom of the history
+        qaHistory.scrollTop = qaHistory.scrollHeight;
+
+        try {
+            // Make API call to get the answer
+            const response = await fetch('/api/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    question: question,
+                    file_id: currentFileId,
+                    page_id: currentPageId  // Include the current page ID
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to get answer');
+            }
+
+            const data = await response.json();
+            const answerElement = questionElement.querySelector('.answer');
+            answerElement.innerHTML = `<p>${data.answer}</p>`;
+
+        } catch (error) {
+            console.error('Error asking question:', error);
+            const answerElement = questionElement.querySelector('.answer');
+            answerElement.innerHTML = `<p class="text-red-500">Error: Failed to get an answer. Please try again.</p>`;
+        }
     });
 
     // Save Notes
@@ -98,31 +148,50 @@ document.addEventListener('DOMContentLoaded', function () {
             method: 'POST',
             body: formData
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('Upload successful:', data);
+
+                // Store the file ID for future API calls
                 if (data.file_id) {
                     currentFileId = data.file_id;
-                    // Trigger analysis (in a real app, this might be handled by the server)
-                    return fetch(`/api/analyze/${currentFileId}`, {
-                        method: 'POST'
-                    });
+                    console.log(`Set currentFileId to ${currentFileId}`);
+                } else if (data.fileId) {
+                    // Handle camelCase variant if that's what the server returns
+                    currentFileId = data.fileId;
+                    console.log(`Set currentFileId to ${currentFileId} (from fileId)`);
                 } else {
-                    throw new Error('File upload failed');
+                    console.error('No file_id or fileId found in response:', data);
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                updateLoadingMessage('Processing document...');
-                // Poll for document processing status
-                // In a hackathon, we'll just simulate with a timeout
-                setTimeout(() => {
-                    fetchDocumentData();
-                }, 2000);
+
+                // Reset the loading state
+                fileInput.value = '';
+                uploadSection.classList.remove('uploading');
+                loadingOverlay.classList.remove('hidden');
+
+                // Get and display document data
+                fetchAndDisplayDocument(data.file_id || data.fileId);
             })
             .catch(error => {
-                console.error('Error:', error);
-                hideLoading();
-                alert('An error occurred while uploading the file.');
+                console.error('Error uploading file:', error);
+                fileInput.value = '';
+                uploadSection.classList.remove('uploading');
+
+                // Show error message
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'error-message p-4 bg-red-100 text-red-800 rounded-lg mb-4';
+                errorMsg.textContent = 'Error uploading file. Please try again.';
+                uploadSection.appendChild(errorMsg);
+
+                // Remove error message after 5 seconds
+                setTimeout(() => {
+                    errorMsg.remove();
+                }, 5000);
             });
     }
 
@@ -170,8 +239,34 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
 
             pageElement.addEventListener('click', () => {
-                currentPageId = page.page_number;
-                renderCurrentPage();
+                // Update current page ID
+                currentPageId = parseInt(page.page_number);
+                console.log(`Clicked on page ${currentPageId}`);
+
+                // For PDFs, scroll to the page
+                if (documentData.file_type === 'pdf') {
+                    const pdfObject = currentPageContent.querySelector('.pdf-container object');
+                    if (pdfObject) {
+                        // Try to scroll to the page
+                        try {
+                            const scrollPercent = (currentPageId - 1) / (documentData.pages.length - 1);
+                            const scrollableHeight = currentPageContent.scrollHeight - currentPageContent.clientHeight;
+                            currentPageContent.scrollTop = scrollPercent * scrollableHeight;
+                            console.log(`Scrolled to ${scrollPercent * 100}% of content`);
+                        } catch (e) {
+                            console.error("Error scrolling to page:", e);
+                        }
+                    } else {
+                        // If can't scroll, re-render the current page
+                        renderCurrentPage();
+                    }
+                } else {
+                    // For non-PDFs, re-render the page
+                    renderCurrentPage();
+                }
+
+                // Always update the right panel and active thumbnail
+                updateRightPanel();
                 updateActiveThumbnail();
             });
 
@@ -353,70 +448,6 @@ document.addEventListener('DOMContentLoaded', function () {
             tabNotes.classList.remove('bg-gray-200', 'text-gray-700');
             tabNotes.classList.add('bg-indigo-600', 'text-white');
         }
-    }
-
-    function askQuestion() {
-        const question = questionInput.value.trim();
-
-        if (!question) return;
-
-        // Add question to history
-        const questionEl = document.createElement('div');
-        questionEl.className = 'question-item mb-2';
-        questionEl.innerHTML = `
-            <div class="question p-2 bg-indigo-100 rounded-lg">
-                <span class="font-semibold">Q:</span> ${question}
-            </div>
-            <div class="answer p-2 mt-1 bg-gray-100 rounded-lg">
-                <span class="font-semibold">A:</span> <span class="loading-dots">...</span>
-            </div>
-        `;
-
-        qaHistory.appendChild(questionEl);
-
-        // Clear input
-        questionInput.value = '';
-
-        // Scroll to bottom of Q&A history
-        qaHistory.scrollTop = qaHistory.scrollHeight;
-
-        // Send question to API
-        fetch('/api/ask', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                question: question,
-                fileId: currentFileId,
-                pageId: currentPageId
-            })
-        })
-            .then(response => response.json())
-            .then(data => {
-                // Update answer in history
-                const answerEl = questionEl.querySelector('.answer');
-                answerEl.innerHTML = `
-                <span class="font-semibold">A:</span> ${data.answer}
-            `;
-
-                // Add references if available
-                if (data.references && data.references.length) {
-                    const refsEl = document.createElement('div');
-                    refsEl.className = 'references mt-1 text-xs text-gray-500';
-                    refsEl.innerHTML = `
-                    <span class="font-semibold">References:</span> ${data.references.join(', ')}
-                `;
-                    answerEl.appendChild(refsEl);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                const answerEl = questionEl.querySelector('.answer');
-                answerEl.innerHTML = `
-                <span class="font-semibold">A:</span> Sorry, an error occurred while processing your question.
-            `;
-            });
     }
 
     function saveNotes() {

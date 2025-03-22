@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 import os
 import uuid
 from werkzeug.utils import secure_filename
-from app.utils.file_processor import process_file
+from app.utils.file_processor import process_file, save_processed_data
 from app.utils.document_analyzer import generate_summary, get_answer
 import glob
 
@@ -15,54 +15,47 @@ def allowed_file(filename):
 
 @api.route('/upload', methods=['POST'])
 def upload_file():
-    """Handle file upload"""
+    """Handle file upload and initial processing"""
+    if 'file' not in request.files:
+        print("No file part in the request")
+        return jsonify({'error': 'No file part'}), 400
+    
+    file = request.files['file']
+    
+    if file.filename == '':
+        print("No file selected")
+        return jsonify({'error': 'No file selected'}), 400
+    
     try:
-        if 'file' not in request.files:
-            print("Error: No file part in request")
-            return jsonify({'error': 'No file part'}), 400
-        
-        file = request.files['file']
-        
-        if file.filename == '':
-            print("Error: No selected file")
-            return jsonify({'error': 'No selected file'}), 400
-        
         if file and allowed_file(file.filename):
-            # Generate unique filename
-            original_filename = secure_filename(file.filename)
-            file_ext = original_filename.rsplit('.', 1)[1].lower()
-            unique_filename = f"{str(uuid.uuid4())}.{file_ext}"
+            # Create a unique filename
+            file_id = str(uuid.uuid4())
+            filename = secure_filename(file.filename)
+            ext = os.path.splitext(filename)[1].lower()
+            new_filename = f"{file_id}{ext}"
             
-            # Save file
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
-            print(f"Saving file to: {file_path}")
+            # Save the file
+            upload_folder = current_app.config['UPLOAD_FOLDER']
+            file_path = os.path.join(upload_folder, new_filename)
             file.save(file_path)
             
-            # Start processing in background (in a real app, this would be async)
-            file_info = {
-                'id': unique_filename.split('.')[0],
-                'original_name': original_filename,
-                'path': file_path,
-                'type': file_ext
-            }
+            # Process the file based on its type
+            processed_data = process_file(file_path)
             
-            # Process file synchronously for hackathon (would be async in production)
-            print(f"Processing file: {file_info}")
-            process_result = process_file(file_info)
-            print(f"Process result: {process_result}")
+            # Save processed data
+            save_processed_data(file_id, processed_data)
             
+            # Return success response with the file ID for future reference
             return jsonify({
-                'message': 'File uploaded successfully',
-                'file_id': file_info['id'],
-                'status': 'processing' if process_result else 'error'
+                'file_id': file_id,  # Use consistent snake_case for field names
+                'message': 'File uploaded and processed successfully',
+                'filename': filename
             }), 200
-        
-        print(f"Error: File type not allowed - {file.filename}")
-        return jsonify({'error': 'File type not allowed'}), 400
+        else:
+            print(f"File type not allowed: {file.filename}")
+            return jsonify({'error': 'File type not allowed'}), 400
     except Exception as e:
-        import traceback
-        print(f"Error in upload_file: {str(e)}")
-        print(traceback.format_exc())
+        print(f"Error uploading file: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @api.route('/analyze/<file_id>', methods=['POST'])
@@ -152,23 +145,38 @@ def get_summaries(file_id):
 
 @api.route('/ask', methods=['POST'])
 def ask_question():
-    """Handle Q&A about documents"""
-    data = request.json
+    """Ask a question about the document content"""
+    data = request.get_json()
     
-    if not data or 'question' not in data or 'fileId' not in data:
-        return jsonify({'error': 'Missing required fields'}), 400
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
     
-    question = data['question']
-    file_id = data['fileId']
-    page_id = data.get('pageId')  # Optional
+    # Handle both camelCase and snake_case parameter names
+    question = data.get('question')
+    file_id = data.get('file_id') or data.get('fileId')
+    page_id = data.get('page_id') or data.get('pageId')
     
-    # TODO: Implement actual Q&A
-    answer = get_answer(question, file_id, page_id)
+    print(f"Ask question request data: {data}")
     
-    return jsonify({
-        'answer': answer,
-        'references': ['Reference to page 1', 'Reference to page 2']
-    }), 200
+    if not question:
+        return jsonify({'error': 'Question is required'}), 400
+    
+    if not file_id:
+        return jsonify({'error': 'file_id is required'}), 400
+    
+    try:
+        # Log the question for debugging
+        print(f"Question asked: '{question}' for file {file_id}, page {page_id}")
+        
+        # Get answer using the current page for better context
+        answer = get_answer(question, file_id, page_id)
+        
+        return jsonify({
+            'answer': answer
+        }), 200
+    except Exception as e:
+        print(f"Error processing question: {str(e)}")
+        return jsonify({'error': 'Error processing your question'}), 500
 
 @api.route('/notes/<page_id>', methods=['PUT'])
 def update_notes(page_id):

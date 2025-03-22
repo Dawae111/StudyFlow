@@ -1,7 +1,8 @@
+from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
 import os
-from dotenv import load_dotenv
+
 
 load_dotenv()
 
