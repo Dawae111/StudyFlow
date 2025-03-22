@@ -26,7 +26,7 @@
     </style>
 </head>
 
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 h-screen">
     <!-- Header -->
     <header class="bg-white shadow-md">
         <div class="container mx-auto px-4 py-6 flex justify-between items-center">
@@ -38,7 +38,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8">
+    <main class="container mx-auto my-auto px-4 py-8 h-screen">
         <div id="upload-section" class="mb-8">
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-4">Upload Your Materials</h2>
@@ -57,11 +57,11 @@
             </div>
         </div>
 
-        <div id="document-viewer" class="hidden grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div id="document-viewer" class="hidden grid grid-cols-1 md:grid-cols-12 gap-6 h-screen">
             <!-- Left Column: Document Pages (smaller) -->
             <div class="md:col-span-2 bg-white p-2 rounded-lg shadow-md h-full">
                 <h3 class="font-semibold text-xs mb-1 pb-1 border-b">Pages</h3>
-                <div id="page-thumbnails" class="space-y-1 overflow-y-auto max-h-[calc(100vh-90px)]">
+                <div id="page-thumbnails" class="space-y-1 overflow-y-auto max-h-[calc(100vh)]">
                     <!-- Page thumbnails will be dynamically added here -->
                 </div>
             </div>
@@ -69,7 +69,7 @@
             <!-- Middle Column: Current Page (larger) -->
             <div class="md:col-span-6 bg-white p-2 rounded-lg shadow-md h-full">
                 <h3 class="font-semibold text-lg mb-1 pb-1 border-b">Document</h3>
-                <div id="current-page-content" class="overflow-y-auto max-h-[calc(100vh-80px)]">
+                <div id="current-page-content" class="overflow-y-auto h-screen">
                     <!-- Current page content will be displayed here -->
                 </div>
             </div>
@@ -87,11 +87,11 @@
                     </div>
                 </div>
 
-                <div id="summary-content" class="overflow-y-auto max-h-[calc(100vh-90px)]">
+                <div id="summary-content" class="overflow-y-auto max-h-[calc(100vh)]">
                     <!-- Summary content will be displayed here -->
                 </div>
 
-                <div id="qa-content" class="hidden overflow-y-auto max-h-[calc(100vh-90px)]">
+                <div id="qa-content" class="hidden overflow-y-auto max-h-[calc(100vh)]">
                     <div id="qa-history" class="mb-4 space-y-4">
                         <!-- Q&A history will be displayed here -->
                     </div>
@@ -103,7 +103,7 @@
                     </div>
                 </div>
 
-                <div id="notes-content" class="hidden overflow-y-auto max-h-[calc(100vh-90px)]">
+                <div id="notes-content" class="hidden overflow-y-auto max-h-[calc(100vh)]">
                     <textarea id="notes-textarea"
                         class="w-full h-64 p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         placeholder="Add your notes here..."></textarea>
