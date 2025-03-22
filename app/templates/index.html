@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyFlow - Enhanced Learning</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .drag-area {
+            border: 2px dashed #6c63ff;
+            height: 300px;
+            background-color: rgba(108, 99, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            border-radius: 10px;
+        }
+
+        .drag-area.active {
+            border: 2px solid #6c63ff;
+            background-color: rgba(108, 99, 255, 0.2);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-4 py-6 flex justify-between items-center">
+            <div class="flex items-center">
+                <h1 class="text-2xl font-bold text-indigo-600">StudyFlow</h1>
+                <span class="ml-2 text-gray-500">Enhanced Learning</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div id="upload-section" class="mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">Upload Your Materials</h2>
+                <p class="text-gray-600 mb-6">Upload PDFs or images of lecture slides, research papers, or study
+                    materials for AI-powered summaries and Q&A.</p>
+
+                <div class="drag-area cursor-pointer" id="drop-area">
+                    <div class="icon"><i class="fas fa-cloud-upload-alt text-5xl text-indigo-500 mb-4"></i></div>
+                    <header class="text-lg">Drag & Drop</header>
+                    <span class="text-gray-500 my-2">OR</span>
+                    <button class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">Browse
+                        Files</button>
+                    <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png" hidden>
+                    <p class="mt-2 text-gray-500 text-sm">Supported formats: PDF, JPG, PNG</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="document-viewer" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Left Column: Document Pages -->
+            <div class="md:col-span-1 bg-white p-4 rounded-lg shadow-md h-full">
+                <h3 class="font-semibold text-lg mb-4 pb-2 border-b">Pages</h3>
+                <div id="page-thumbnails" class="space-y-4 overflow-y-auto max-h-[calc(100vh-200px)]">
+                    <!-- Page thumbnails will be dynamically added here -->
+                </div>
+            </div>
+
+            <!-- Middle Column: Current Page -->
+            <div class="md:col-span-1 bg-white p-4 rounded-lg shadow-md h-full">
+                <h3 class="font-semibold text-lg mb-4 pb-2 border-b">Current Page</h3>
+                <div id="current-page-content" class="overflow-y-auto max-h-[calc(100vh-200px)]">
+                    <!-- Current page content will be displayed here -->
+                </div>
+            </div>
+
+            <!-- Right Column: Summary, Notes, Q&A -->
+            <div class="md:col-span-1 bg-white p-4 rounded-lg shadow-md h-full">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b">
+                    <h3 class="font-semibold text-lg">Study Tools</h3>
+                    <div class="space-x-2">
+                        <button id="tab-summary" class="px-3 py-1 bg-indigo-600 text-white rounded-md">Summary</button>
+                        <button id="tab-qa" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md">Q&A</button>
+                        <button id="tab-notes" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md">Notes</button>
+                    </div>
+                </div>
+
+                <div id="summary-content" class="overflow-y-auto max-h-[calc(100vh-270px)]">
+                    <!-- Summary content will be displayed here -->
+                </div>
+
+                <div id="qa-content" class="hidden overflow-y-auto max-h-[calc(100vh-270px)]">
+                    <div id="qa-history" class="mb-4 space-y-4">
+                        <!-- Q&A history will be displayed here -->
+                    </div>
+                    <div class="flex items-center border rounded-lg overflow-hidden">
+                        <input id="question-input" type="text" class="flex-grow px-4 py-2 focus:outline-none"
+                            placeholder="Ask a question about this content...">
+                        <button id="ask-button"
+                            class="bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700 transition">Ask</button>
+                    </div>
+                </div>
+
+                <div id="notes-content" class="hidden overflow-y-auto max-h-[calc(100vh-270px)]">
+                    <textarea id="notes-textarea"
+                        class="w-full h-64 p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder="Add your notes here..."></textarea>
+                    <button id="save-notes"
+                        class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">Save
+                        Notes</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p id="loading-message">Processing your document...</p>
+        </div>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+
+</html>
