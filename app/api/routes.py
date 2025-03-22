@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, session
 import os
 import uuid
 from werkzeug.utils import secure_filename
@@ -8,6 +8,8 @@ from app.utils.gcs_utils import upload_file_to_gcs
 import glob
 import json
 import tempfile
+import pyperclip
+import traceback
 
 api = Blueprint('api', __name__)
 
@@ -539,4 +541,74 @@ def get_models():
         return jsonify(model_info), 200
     except Exception as e:
         print(f"Error retrieving model information: {str(e)}")
-        return jsonify({'error': 'Error retrieving model information'}), 500 
+        return jsonify({'error': 'Error retrieving model information'}), 500
+
+@api.route('/select-text', methods=['POST'])
+def select_text():
+    """Endpoint to handle text selection and clipboard operations"""
+    try:
+        print("\n🔍 /select-text endpoint called")
+        data = request.json
+        print(f"🔍 Request data: {data}")
+        
+        action = data.get('action', '')
+        text = data.get('text', '')
+        
+        print(f"🔍 Action: {action}, Text length: {len(text) if text else 0}")
+        
+        if action == 'copy':
+            print(f"🔍 Storing text in session (length: {len(text)})")
+            # Save the text to be retrieved later
+            session['clipboard_text'] = text
+            
+            # Debug: Check if text was stored correctly
+            stored_text = session.get('clipboard_text', '')
+            print(f"🔍 Verified stored text length: {len(stored_text)}")
+            
+            # Also try to use pyperclip as a backup
+            try:
+                pyperclip.copy(text)
+                print("🔍 Text also copied using pyperclip")
+            except Exception as e:
+                print(f"⚠️ Pyperclip error (non-critical): {str(e)}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Text saved to server clipboard'
+            })
+        
+        elif action == 'get':
+            # Return previously stored text
+            clipboard_text = session.get('clipboard_text', '')
+            print(f"🔍 Retrieving text from session (length: {len(clipboard_text)})")
+            
+            # If session is empty, try pyperclip as fallback
+            if not clipboard_text:
+                try:
+                    clipboard_text = pyperclip.paste()
+                    print(f"🔍 Used pyperclip fallback, got text length: {len(clipboard_text)}")
+                except Exception as e:
+                    print(f"⚠️ Pyperclip paste error: {str(e)}")
+            
+            # Debug session object
+            print(f"🔍 Current session keys: {list(session.keys())}")
+            print(f"🔍 Session ID: {session.sid if hasattr(session, 'sid') else 'No session ID'}")
+            
+            return jsonify({
+                'success': True,
+                'text': clipboard_text
+            })
+        
+        print(f"⚠️ Invalid action specified: {action}")
+        return jsonify({
+            'success': False,
+            'error': 'Invalid action specified'
+        }), 400
+        
+    except Exception as e:
+        print(f"🚨 Error in select-text endpoint: {str(e)}")
+        print(f"🚨 Traceback: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500 
