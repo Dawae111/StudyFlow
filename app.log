@@ -1,0 +1,319 @@
+[DEBUG 2025-03-22 17:58:54.436] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 17:58:54.438] Request method: POST
+[DEBUG 2025-03-22 17:58:54.438] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU_2L00AQ_VeGgpBArrapp1IREX84DjlRUCiYQybJpF3Y7Ib9MK3i_-7sZvtxhyj4U-nOzJv33rz8nDVSDLVG035ztHez9eyTJ-uEVrBcV-qdVla0ZAAVoDSE7eHKGRSKWrhBb63gQi_2zhuCXrckIbu5u8vB7dCBsHBsdho64aBFh8DY1vmWlKvUQKbTpkfVEAjeAY1Ea-fweUfAQOAtMcioodH9oBXPWMjew2soc0CucFuc4DoztVzVXeivVIOOttoIik9poV2DV6xna7D13HB6hyz1H2DJyKqFv7WU-bxSgaIkNEHegAZ7cmSm_Yk8silMstNS6tHySOXLRVlGcSOJ7c6d2qPEM-MwOS6DzKcryB5QntiNJReXoXh6f4jfshlG1D6eMl6D_bdgG20Yn60-6w13-gDZ_hW8WBSwXJT_DVWeoV4y1HVEyjCHtw03t0JtQxCSPQWMx5Dww2B0jbWQwh2mHSFxphYcICPkASxJahxbnc6R1ldqy6lk48OQ4q1P3jDnCFvEzHi-4EfzdQMsqHx-zR33YTGxwRtgIO1oIhDxjudISwL7WwUH7U0Cw2BCEWIZ-3Bg3nvR44U32sAPMvqqJyZU-cWqWZVX31lFDLnh6-ke4v9aUqU2BYg5zQuYKK6aZCD7l4bzIigIxXK1mX4mNc9Sx_0UlGh2ncNtx98RJ9KJxks0J8d2nEVMOh-59o9bXFhSKW7qDEs4B-jPlk_fJac0Mb-4wByyL8lBy9_NIxvRzn79BiLQkQE.Z98xfA.iel1rlA4k-LwBUA3vmqN3USXqzo'}
+[DEBUG 2025-03-22 17:58:54.449] Current session ID: no-session-id
+[DEBUG 2025-03-22 17:58:54.449] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 17:58:54.450] Action: get, Text length: 0
+[DEBUG 2025-03-22 17:58:54.450] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 17:58:54.451] From session - text length: 1078
+[DEBUG 2025-03-22 17:58:54.451] Final text length to return: 1078
+[DEBUG 2025-03-22 17:58:54.451] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 17:59:05.904] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 17:59:05.905] Request method: POST
+[DEBUG 2025-03-22 17:59:05.906] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU_2L00AQ_VeGgpBArrapp1IREX84DjlRUCiYQybJpF3Y7Ib9MK3i_-7sZvtxhyj4U-nOzJv33rz8nDVSDLVG035ztHez9eyTJ-uEVrBcV-qdVla0ZAAVoDSE7eHKGRSKWrhBb63gQi_2zhuCXrckIbu5u8vB7dCBsHBsdho64aBFh8DY1vmWlKvUQKbTpkfVEAjeAY1Ea-fweUfAQOAtMcioodH9oBXPWMjew2soc0CucFuc4DoztVzVXeivVIOOttoIik9poV2DV6xna7D13HB6hyz1H2DJyKqFv7WU-bxSgaIkNEHegAZ7cmSm_Yk8silMstNS6tHySOXLRVlGcSOJ7c6d2qPEM-MwOS6DzKcryB5QntiNJReXoXh6f4jfshlG1D6eMl6D_bdgG20Yn60-6w13-gDZ_hW8WBSwXJT_DVWeoV4y1HVEyjCHtw03t0JtQxCSPQWMx5Dww2B0jbWQwh2mHSFxphYcICPkASxJahxbnc6R1ldqy6lk48OQ4q1P3jDnCFvEzHi-4EfzdQMsqHx-zR33YTGxwRtgIO1oIhDxjudISwL7WwUH7U0Cw2BCEWIZ-3Bg3nvR44U32sAPMvqqJyZU-cWqWZVX31lFDLnh6-ke4v9aUqU2BYg5zQuYKK6aZCD7l4bzIigIxXK1mX4mNc9Sx_0UlGh2ncNtx98RJ9KJxks0J8d2nEVMOh-59o9bXFhSKW7qDEs4B-jPlk_fJac0Mb-4wByyL8lBy9_NIxvRzn79BiLQkQE.Z98xfA.iel1rlA4k-LwBUA3vmqN3USXqzo'}
+[DEBUG 2025-03-22 17:59:05.908] Current session ID: no-session-id
+[DEBUG 2025-03-22 17:59:05.909] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 17:59:05.909] Action: get, Text length: 0
+[DEBUG 2025-03-22 17:59:05.909] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 17:59:05.909] From session - text length: 1078
+[DEBUG 2025-03-22 17:59:05.910] Final text length to return: 1078
+[DEBUG 2025-03-22 17:59:05.910] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:06:25.800] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:06:25.800] Request method: POST
+[DEBUG 2025-03-22 18:06:25.801] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '72', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU_2L00AQ_VeGgpBArrapp1IREX84DjlRUCiYQybJpF3Y7Ib9MK3i_-7sZvtxhyj4U-nOzJv33rz8nDVSDLVG035ztHez9eyTJ-uEVrBcV-qdVla0ZAAVoDSE7eHKGRSKWrhBb63gQi_2zhuCXrckIbu5u8vB7dCBsHBsdho64aBFh8DY1vmWlKvUQKbTpkfVEAjeAY1Ea-fweUfAQOAtMcioodH9oBXPWMjew2soc0CucFuc4DoztVzVXeivVIOOttoIik9poV2DV6xna7D13HB6hyz1H2DJyKqFv7WU-bxSgaIkNEHegAZ7cmSm_Yk8silMstNS6tHySOXLRVlGcSOJ7c6d2qPEM-MwOS6DzKcryB5QntiNJReXoXh6f4jfshlG1D6eMl6D_bdgG20Yn60-6w13-gDZ_hW8WBSwXJT_DVWeoV4y1HVEyjCHtw03t0JtQxCSPQWMx5Dww2B0jbWQwh2mHSFxphYcICPkASxJahxbnc6R1ldqy6lk48OQ4q1P3jDnCFvEzHi-4EfzdQMsqHx-zR33YTGxwRtgIO1oIhDxjudISwL7WwUH7U0Cw2BCEWIZ-3Bg3nvR44U32sAPMvqqJyZU-cWqWZVX31lFDLnh6-ke4v9aUqU2BYg5zQuYKK6aZCD7l4bzIigIxXK1mX4mNc9Sx_0UlGh2ncNtx98RJ9KJxks0J8d2nEVMOh-59o9bXFhSKW7qDEs4B-jPlk_fJac0Mb-4wByyL8lBy9_NIxvRzn79BiLQkQE.Z98xfA.iel1rlA4k-LwBUA3vmqN3USXqzo'}
+[DEBUG 2025-03-22 18:06:25.802] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:06:25.803] Request data: {'action': 'copy', 'text': 'o questions yet for this page. Ask something!'}
+[DEBUG 2025-03-22 18:06:25.803] Action: copy, Text length: 45
+[DEBUG 2025-03-22 18:06:25.803] Text preview: o questions yet for this page....
+[DEBUG 2025-03-22 18:06:25.804] Storing text in session (length: 45)
+[DEBUG 2025-03-22 18:06:25.810] Text also copied using pyperclip
+[DEBUG 2025-03-22 18:06:25.812] Text saved to temporary file as backup
+[DEBUG 2025-03-22 18:06:25.813] Verification - stored text length: 45
+[DEBUG 2025-03-22 18:06:25.813] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:06:26.677] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:06:26.678] Request method: POST
+[DEBUG 2025-03-22 18:06:26.679] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=eyJjbGlwYm9hcmRfdGV4dCI6Im8gcXVlc3Rpb25zIHlldCBmb3IgdGhpcyBwYWdlLiBBc2sgc29tZXRoaW5nISJ9.Z980YQ.Di9L2exgfLoaJ0f7_4dXAea0llU'}
+[DEBUG 2025-03-22 18:06:26.681] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:06:26.682] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:06:26.682] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:06:26.683] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:06:26.683] From session - text length: 45
+[DEBUG 2025-03-22 18:06:26.683] Final text length to return: 45
+[DEBUG 2025-03-22 18:06:26.684] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:06:36.630] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:06:36.631] Request method: POST
+[DEBUG 2025-03-22 18:06:36.632] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=eyJjbGlwYm9hcmRfdGV4dCI6Im8gcXVlc3Rpb25zIHlldCBmb3IgdGhpcyBwYWdlLiBBc2sgc29tZXRoaW5nISJ9.Z980YQ.Di9L2exgfLoaJ0f7_4dXAea0llU'}
+[DEBUG 2025-03-22 18:06:36.634] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:06:36.635] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:06:36.635] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:06:36.635] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:06:36.636] From session - text length: 45
+[DEBUG 2025-03-22 18:06:36.636] Final text length to return: 45
+[DEBUG 2025-03-22 18:06:36.636] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:07:03.854] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:07:03.855] Request method: POST
+[DEBUG 2025-03-22 18:07:03.855] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '72', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=eyJjbGlwYm9hcmRfdGV4dCI6Im8gcXVlc3Rpb25zIHlldCBmb3IgdGhpcyBwYWdlLiBBc2sgc29tZXRoaW5nISJ9.Z980YQ.Di9L2exgfLoaJ0f7_4dXAea0llU'}
+[DEBUG 2025-03-22 18:07:03.857] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:07:03.858] Request data: {'action': 'copy', 'text': 'o questions yet for this page. Ask something!'}
+[DEBUG 2025-03-22 18:07:03.858] Action: copy, Text length: 45
+[DEBUG 2025-03-22 18:07:03.859] Text preview: o questions yet for this page....
+[DEBUG 2025-03-22 18:07:03.859] Storing text in session (length: 45)
+[DEBUG 2025-03-22 18:07:03.863] Text also copied using pyperclip
+[DEBUG 2025-03-22 18:07:03.864] Text saved to temporary file as backup
+[DEBUG 2025-03-22 18:07:03.865] Verification - stored text length: 45
+[DEBUG 2025-03-22 18:07:03.865] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:07:06.061] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:07:06.063] Request method: POST
+[DEBUG 2025-03-22 18:07:06.063] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=eyJjbGlwYm9hcmRfdGV4dCI6Im8gcXVlc3Rpb25zIHlldCBmb3IgdGhpcyBwYWdlLiBBc2sgc29tZXRoaW5nISJ9.Z980hw.gYNI8Z-71XE6pNidTpZLvXPgMPk'}
+[DEBUG 2025-03-22 18:07:06.065] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:07:06.066] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:07:06.066] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:07:06.066] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:07:06.066] From session - text length: 45
+[DEBUG 2025-03-22 18:07:06.067] Final text length to return: 45
+[DEBUG 2025-03-22 18:07:06.067] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:07:23.898] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:07:23.900] Request method: POST
+[DEBUG 2025-03-22 18:07:23.900] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=eyJjbGlwYm9hcmRfdGV4dCI6Im8gcXVlc3Rpb25zIHlldCBmb3IgdGhpcyBwYWdlLiBBc2sgc29tZXRoaW5nISJ9.Z980hw.gYNI8Z-71XE6pNidTpZLvXPgMPk'}
+[DEBUG 2025-03-22 18:07:23.902] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:07:23.903] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:07:23.903] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:07:23.903] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:07:23.903] From session - text length: 45
+[DEBUG 2025-03-22 18:07:23.904] Final text length to return: 45
+[DEBUG 2025-03-22 18:07:23.904] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:07:35.611] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:07:35.612] Request method: POST
+[DEBUG 2025-03-22 18:07:35.613] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=eyJjbGlwYm9hcmRfdGV4dCI6Im8gcXVlc3Rpb25zIHlldCBmb3IgdGhpcyBwYWdlLiBBc2sgc29tZXRoaW5nISJ9.Z980hw.gYNI8Z-71XE6pNidTpZLvXPgMPk'}
+[DEBUG 2025-03-22 18:07:35.615] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:07:35.615] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:07:35.615] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:07:35.615] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:07:35.616] From session - text length: 45
+[DEBUG 2025-03-22 18:07:35.616] Final text length to return: 45
+[DEBUG 2025-03-22 18:07:35.616] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:10:44.702] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:10:44.703] Request method: POST
+[DEBUG 2025-03-22 18:10:44.704] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=eyJjbGlwYm9hcmRfdGV4dCI6Im8gcXVlc3Rpb25zIHlldCBmb3IgdGhpcyBwYWdlLiBBc2sgc29tZXRoaW5nISJ9.Z980hw.gYNI8Z-71XE6pNidTpZLvXPgMPk'}
+[DEBUG 2025-03-22 18:10:44.706] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:10:44.706] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:10:44.707] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:10:44.707] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:10:44.708] From session - text length: 45
+[DEBUG 2025-03-22 18:10:44.708] Final text length to return: 45
+[DEBUG 2025-03-22 18:10:44.708] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:11:00.696] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:11:00.698] Request method: POST
+[DEBUG 2025-03-22 18:11:00.698] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=eyJjbGlwYm9hcmRfdGV4dCI6Im8gcXVlc3Rpb25zIHlldCBmb3IgdGhpcyBwYWdlLiBBc2sgc29tZXRoaW5nISJ9.Z980hw.gYNI8Z-71XE6pNidTpZLvXPgMPk'}
+[DEBUG 2025-03-22 18:11:00.699] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:11:00.700] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:11:00.701] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:11:00.701] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:11:00.701] From session - text length: 45
+[DEBUG 2025-03-22 18:11:00.702] Final text length to return: 45
+[DEBUG 2025-03-22 18:11:00.703] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:11:12.453] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:11:12.455] Request method: POST
+[DEBUG 2025-03-22 18:11:12.455] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=eyJjbGlwYm9hcmRfdGV4dCI6Im8gcXVlc3Rpb25zIHlldCBmb3IgdGhpcyBwYWdlLiBBc2sgc29tZXRoaW5nISJ9.Z980hw.gYNI8Z-71XE6pNidTpZLvXPgMPk'}
+[DEBUG 2025-03-22 18:11:12.456] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:11:12.457] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:11:12.457] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:11:12.458] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:11:12.459] From session - text length: 45
+[DEBUG 2025-03-22 18:11:12.459] Final text length to return: 45
+[DEBUG 2025-03-22 18:11:12.459] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:16:37.801] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:16:37.801] Request method: POST
+[DEBUG 2025-03-22 18:16:37.801] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=eyJjbGlwYm9hcmRfdGV4dCI6Im8gcXVlc3Rpb25zIHlldCBmb3IgdGhpcyBwYWdlLiBBc2sgc29tZXRoaW5nISJ9.Z980hw.gYNI8Z-71XE6pNidTpZLvXPgMPk'}
+[DEBUG 2025-03-22 18:16:37.801] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:16:37.801] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:16:37.801] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:16:37.816] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:16:37.816] From session - text length: 45
+[DEBUG 2025-03-22 18:16:37.816] Final text length to return: 45
+[DEBUG 2025-03-22 18:16:37.816] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:16:51.826] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:16:51.827] Request method: POST
+[DEBUG 2025-03-22 18:16:51.828] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '48446', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=eyJjbGlwYm9hcmRfdGV4dCI6Im8gcXVlc3Rpb25zIHlldCBmb3IgdGhpcyBwYWdlLiBBc2sgc29tZXRoaW5nISJ9.Z980hw.gYNI8Z-71XE6pNidTpZLvXPgMPk'}
+[DEBUG 2025-03-22 18:16:51.829] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:16:52.006] Action: copy, Text length: 46008
+[DEBUG 2025-03-22 18:16:52.006] Text preview: import { api } from './api.js'...
+[DEBUG 2025-03-22 18:16:52.006] Storing text in session (length: 46008)
+[DEBUG 2025-03-22 18:16:52.006] Text also copied using pyperclip
+[DEBUG 2025-03-22 18:16:52.006] Text saved to temporary file as backup
+[DEBUG 2025-03-22 18:16:52.006] Verification - stored text length: 46008
+[DEBUG 2025-03-22 18:16:52.006] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:16:56.654] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:16:56.656] Request method: POST
+[DEBUG 2025-03-22 18:16:56.656] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=eyJjbGlwYm9hcmRfdGV4dCI6Im8gcXVlc3Rpb25zIHlldCBmb3IgdGhpcyBwYWdlLiBBc2sgc29tZXRoaW5nISJ9.Z980hw.gYNI8Z-71XE6pNidTpZLvXPgMPk'}
+[DEBUG 2025-03-22 18:16:56.658] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:16:56.659] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:16:56.659] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:16:56.659] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:16:56.660] From session - text length: 45
+[DEBUG 2025-03-22 18:16:56.660] Final text length to return: 45
+[DEBUG 2025-03-22 18:16:56.660] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:18:17.158] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:18:17.159] Request method: POST
+[DEBUG 2025-03-22 18:18:17.160] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '1046', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=eyJjbGlwYm9hcmRfdGV4dCI6Im8gcXVlc3Rpb25zIHlldCBmb3IgdGhpcyBwYWdlLiBBc2sgc29tZXRoaW5nISJ9.Z980hw.gYNI8Z-71XE6pNidTpZLvXPgMPk'}
+[DEBUG 2025-03-22 18:18:17.161] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:18:17.167] Action: copy, Text length: 988
+[DEBUG 2025-03-22 18:18:17.168] Text preview: Question 1:
+Consider an alread...
+[DEBUG 2025-03-22 18:18:17.169] Storing text in session (length: 988)
+[DEBUG 2025-03-22 18:18:17.172] Text also copied using pyperclip
+[DEBUG 2025-03-22 18:18:17.173] Text saved to temporary file as backup
+[DEBUG 2025-03-22 18:18:17.174] Verification - stored text length: 988
+[DEBUG 2025-03-22 18:18:17.174] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:18:17.565] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:18:17.565] Request method: POST
+[DEBUG 2025-03-22 18:18:17.565] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '1046', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU12LE0EQ_CtNQNiFvZhsPJWIiPhwHHKicA8B95DenU4yMDuzzIebKP53e2YnyZ0PCj6Fna6urq6u_Jx1Sg6tQSu-eTr42Xr2JZDz0mhYrhv9wWgnBVlADagsoTheeYtSk4AbDM5JLvTy4IMl6I0gBcXN3V0Jfo8epIMT2BvYSg8CPQJzOx8Ead_ogezW2B51RyB5BnQKnZvD_Z6AiSA4YpLRQGf6wWjucVB8hLdQl4BcYVjq4DordVw124hvdIeedsZKSk95oFtD0LzPzqIIDDi_Q5HxR1gysxbwN0hdzhsdJSpCG9cb0GJPnuw0P4tHNoVFbo1SZnTc0oR6UddpuZHkbu_P8LTiRXHsHJdxzecrKJ5IntSNNReXsXh-f8ov2Awr25BOma7B_jtwnbHMz1Zf9o13-gTF4Q28WlSwXNT_TVVfqF4z1XViKrCE9x2DhdS7GIRsTwXjKST8MFjTYiuV9MdpRkycbSUHyEp1BEeKOs9W53Pk8Y3ecSrZ-Nikeeqzd6w50VYpM4Ev-Nl-3QAvVL-8ZsRDHExs8AaYyHiaBCS-0znykKj-VsPRBJvJMJpQxVgmHA6s-yB7fOSNsfCDrLnqiQU1YbHqVvXVd94ihdzy9UwP6btV1OhNBXJO8womiasuG8j-5eayihvEYr3aTD_TNi8y4mEKSjK7LeF2y_8jTqSXXVBoz47tOYuY9_zDtX_c4pEls1-_AW34b4I.Z983KQ._mNJXBBGqe1AIr3hHbU2JZ3J_aI'}
+[DEBUG 2025-03-22 18:18:17.565] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:18:17.565] Action: copy, Text length: 988
+[DEBUG 2025-03-22 18:18:17.565] Text preview: Question 1:
+Consider an alread...
+[DEBUG 2025-03-22 18:18:17.565] Storing text in session (length: 988)
+[DEBUG 2025-03-22 18:18:17.579] Text also copied using pyperclip
+[DEBUG 2025-03-22 18:18:17.579] Text saved to temporary file as backup
+[DEBUG 2025-03-22 18:18:17.579] Verification - stored text length: 988
+[DEBUG 2025-03-22 18:18:17.579] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:18:17.972] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:18:17.987] Request method: POST
+[DEBUG 2025-03-22 18:18:17.987] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '1046', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU12LE0EQ_CtNQNiFvZhsPJWIiPhwHHKicA8B95DenU4yMDuzzIebKP53e2YnyZ0PCj6Fna6urq6u_Jx1Sg6tQSu-eTr42Xr2JZDz0mhYrhv9wWgnBVlADagsoTheeYtSk4AbDM5JLvTy4IMl6I0gBcXN3V0Jfo8epIMT2BvYSg8CPQJzOx8Ead_ogezW2B51RyB5BnQKnZvD_Z6AiSA4YpLRQGf6wWjucVB8hLdQl4BcYVjq4DordVw124hvdIeedsZKSk95oFtD0LzPzqIIDDi_Q5HxR1gysxbwN0hdzhsdJSpCG9cb0GJPnuw0P4tHNoVFbo1SZnTc0oR6UddpuZHkbu_P8LTiRXHsHJdxzecrKJ5IntSNNReXsXh-f8ov2Awr25BOma7B_jtwnbHMz1Zf9o13-gTF4Q28WlSwXNT_TVVfqF4z1XViKrCE9x2DhdS7GIRsTwXjKST8MFjTYiuV9MdpRkycbSUHyEp1BEeKOs9W53Pk8Y3ecSrZ-Nikeeqzd6w50VYpM4Ev-Nl-3QAvVL-8ZsRDHExs8AaYyHiaBCS-0znykKj-VsPRBJvJMJpQxVgmHA6s-yB7fOSNsfCDrLnqiQU1YbHqVvXVd94ihdzy9UwP6btV1OhNBXJO8womiasuG8j-5eayihvEYr3aTD_TNi8y4mEKSjK7LeF2y_8jTqSXXVBoz47tOYuY9_zDtX_c4pEls1-_AW34b4I.Z983KQ._mNJXBBGqe1AIr3hHbU2JZ3J_aI'}
+[DEBUG 2025-03-22 18:18:17.987] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:18:17.987] Action: copy, Text length: 988
+[DEBUG 2025-03-22 18:18:17.987] Text preview: Question 1:
+Consider an alread...
+[DEBUG 2025-03-22 18:18:17.987] Storing text in session (length: 988)
+[DEBUG 2025-03-22 18:18:18.010] Text also copied using pyperclip
+[DEBUG 2025-03-22 18:18:18.010] Text saved to temporary file as backup
+[DEBUG 2025-03-22 18:18:18.010] Verification - stored text length: 988
+[DEBUG 2025-03-22 18:18:18.010] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:20:39.329] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:20:39.331] Request method: POST
+[DEBUG 2025-03-22 18:20:39.331] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU12LE0EQ_CtNQNiFvZhsPJWIiPhwHHKicA8B95DenU4yMDuzzIebKP53e2YnyZ0PCj6Fna6urq6u_Jx1Sg6tQSu-eTr42Xr2JZDz0mhYrhv9wWgnBVlADagsoTheeYtSk4AbDM5JLvTy4IMl6I0gBcXN3V0Jfo8epIMT2BvYSg8CPQJzOx8Ead_ogezW2B51RyB5BnQKnZvD_Z6AiSA4YpLRQGf6wWjucVB8hLdQl4BcYVjq4DordVw124hvdIeedsZKSk95oFtD0LzPzqIIDDi_Q5HxR1gysxbwN0hdzhsdJSpCG9cb0GJPnuw0P4tHNoVFbo1SZnTc0oR6UddpuZHkbu_P8LTiRXHsHJdxzecrKJ5IntSNNReXsXh-f8ov2Awr25BOma7B_jtwnbHMz1Zf9o13-gTF4Q28WlSwXNT_TVVfqF4z1XViKrCE9x2DhdS7GIRsTwXjKST8MFjTYiuV9MdpRkycbSUHyEp1BEeKOs9W53Pk8Y3ecSrZ-Nikeeqzd6w50VYpM4Ev-Nl-3QAvVL-8ZsRDHExs8AaYyHiaBCS-0znykKj-VsPRBJvJMJpQxVgmHA6s-yB7fOSNsfCDrLnqiQU1YbHqVvXVd94ihdzy9UwP6btV1OhNBXJO8womiasuG8j-5eayihvEYr3aTD_TNi8y4mEKSjK7LeF2y_8jTqSXXVBoz47tOYuY9_zDtX_c4pEls1-_AW34b4I.Z983Kg.ct20X13FumpCOJujgoGO0bpvRGA'}
+[DEBUG 2025-03-22 18:20:39.333] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:20:39.333] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:20:39.334] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:20:39.334] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:20:39.334] From session - text length: 988
+[DEBUG 2025-03-22 18:20:39.334] Final text length to return: 988
+[DEBUG 2025-03-22 18:20:39.334] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:20:47.658] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:20:47.659] Request method: POST
+[DEBUG 2025-03-22 18:20:47.660] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU12LE0EQ_CtNQNiFvZhsPJWIiPhwHHKicA8B95DenU4yMDuzzIebKP53e2YnyZ0PCj6Fna6urq6u_Jx1Sg6tQSu-eTr42Xr2JZDz0mhYrhv9wWgnBVlADagsoTheeYtSk4AbDM5JLvTy4IMl6I0gBcXN3V0Jfo8epIMT2BvYSg8CPQJzOx8Ead_ogezW2B51RyB5BnQKnZvD_Z6AiSA4YpLRQGf6wWjucVB8hLdQl4BcYVjq4DordVw124hvdIeedsZKSk95oFtD0LzPzqIIDDi_Q5HxR1gysxbwN0hdzhsdJSpCG9cb0GJPnuw0P4tHNoVFbo1SZnTc0oR6UddpuZHkbu_P8LTiRXHsHJdxzecrKJ5IntSNNReXsXh-f8ov2Awr25BOma7B_jtwnbHMz1Zf9o13-gTF4Q28WlSwXNT_TVVfqF4z1XViKrCE9x2DhdS7GIRsTwXjKST8MFjTYiuV9MdpRkycbSUHyEp1BEeKOs9W53Pk8Y3ecSrZ-Nikeeqzd6w50VYpM4Ev-Nl-3QAvVL-8ZsRDHExs8AaYyHiaBCS-0znykKj-VsPRBJvJMJpQxVgmHA6s-yB7fOSNsfCDrLnqiQU1YbHqVvXVd94ihdzy9UwP6btV1OhNBXJO8womiasuG8j-5eayihvEYr3aTD_TNi8y4mEKSjK7LeF2y_8jTqSXXVBoz47tOYuY9_zDtX_c4pEls1-_AW34b4I.Z983Kg.ct20X13FumpCOJujgoGO0bpvRGA'}
+[DEBUG 2025-03-22 18:20:47.663] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:20:47.663] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:20:47.663] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:20:47.664] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:20:47.665] From session - text length: 988
+[DEBUG 2025-03-22 18:20:47.665] Final text length to return: 988
+[DEBUG 2025-03-22 18:20:47.665] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:26:22.372] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:26:22.374] Request method: POST
+[DEBUG 2025-03-22 18:26:22.374] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU12LE0EQ_CtNQNiFvZhsPJWIiPhwHHKicA8B95DenU4yMDuzzIebKP53e2YnyZ0PCj6Fna6urq6u_Jx1Sg6tQSu-eTr42Xr2JZDz0mhYrhv9wWgnBVlADagsoTheeYtSk4AbDM5JLvTy4IMl6I0gBcXN3V0Jfo8epIMT2BvYSg8CPQJzOx8Ead_ogezW2B51RyB5BnQKnZvD_Z6AiSA4YpLRQGf6wWjucVB8hLdQl4BcYVjq4DordVw124hvdIeedsZKSk95oFtD0LzPzqIIDDi_Q5HxR1gysxbwN0hdzhsdJSpCG9cb0GJPnuw0P4tHNoVFbo1SZnTc0oR6UddpuZHkbu_P8LTiRXHsHJdxzecrKJ5IntSNNReXsXh-f8ov2Awr25BOma7B_jtwnbHMz1Zf9o13-gTF4Q28WlSwXNT_TVVfqF4z1XViKrCE9x2DhdS7GIRsTwXjKST8MFjTYiuV9MdpRkycbSUHyEp1BEeKOs9W53Pk8Y3ecSrZ-Nikeeqzd6w50VYpM4Ev-Nl-3QAvVL-8ZsRDHExs8AaYyHiaBCS-0znykKj-VsPRBJvJMJpQxVgmHA6s-yB7fOSNsfCDrLnqiQU1YbHqVvXVd94ihdzy9UwP6btV1OhNBXJO8womiasuG8j-5eayihvEYr3aTD_TNi8y4mEKSjK7LeF2y_8jTqSXXVBoz47tOYuY9_zDtX_c4pEls1-_AW34b4I.Z983Kg.ct20X13FumpCOJujgoGO0bpvRGA'}
+[DEBUG 2025-03-22 18:26:22.377] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:26:22.377] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:26:22.378] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:26:22.378] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:26:22.379] From session - text length: 988
+[DEBUG 2025-03-22 18:26:22.379] Final text length to return: 988
+[DEBUG 2025-03-22 18:26:22.379] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:26:35.109] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:26:35.111] Request method: POST
+[DEBUG 2025-03-22 18:26:35.112] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU12LE0EQ_CtNQNiFvZhsPJWIiPhwHHKicA8B95DenU4yMDuzzIebKP53e2YnyZ0PCj6Fna6urq6u_Jx1Sg6tQSu-eTr42Xr2JZDz0mhYrhv9wWgnBVlADagsoTheeYtSk4AbDM5JLvTy4IMl6I0gBcXN3V0Jfo8epIMT2BvYSg8CPQJzOx8Ead_ogezW2B51RyB5BnQKnZvD_Z6AiSA4YpLRQGf6wWjucVB8hLdQl4BcYVjq4DordVw124hvdIeedsZKSk95oFtD0LzPzqIIDDi_Q5HxR1gysxbwN0hdzhsdJSpCG9cb0GJPnuw0P4tHNoVFbo1SZnTc0oR6UddpuZHkbu_P8LTiRXHsHJdxzecrKJ5IntSNNReXsXh-f8ov2Awr25BOma7B_jtwnbHMz1Zf9o13-gTF4Q28WlSwXNT_TVVfqF4z1XViKrCE9x2DhdS7GIRsTwXjKST8MFjTYiuV9MdpRkycbSUHyEp1BEeKOs9W53Pk8Y3ecSrZ-Nikeeqzd6w50VYpM4Ev-Nl-3QAvVL-8ZsRDHExs8AaYyHiaBCS-0znykKj-VsPRBJvJMJpQxVgmHA6s-yB7fOSNsfCDrLnqiQU1YbHqVvXVd94ihdzy9UwP6btV1OhNBXJO8womiasuG8j-5eayihvEYr3aTD_TNi8y4mEKSjK7LeF2y_8jTqSXXVBoz47tOYuY9_zDtX_c4pEls1-_AW34b4I.Z983Kg.ct20X13FumpCOJujgoGO0bpvRGA'}
+[DEBUG 2025-03-22 18:26:35.114] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:26:35.115] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:26:35.115] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:26:35.115] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:26:35.116] From session - text length: 988
+[DEBUG 2025-03-22 18:26:35.116] Final text length to return: 988
+[DEBUG 2025-03-22 18:26:35.116] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:29:54.438] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:29:54.439] Request method: POST
+[DEBUG 2025-03-22 18:29:54.440] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU12LE0EQ_CtNQNiFvZhsPJWIiPhwHHKicA8B95DenU4yMDuzzIebKP53e2YnyZ0PCj6Fna6urq6u_Jx1Sg6tQSu-eTr42Xr2JZDz0mhYrhv9wWgnBVlADagsoTheeYtSk4AbDM5JLvTy4IMl6I0gBcXN3V0Jfo8epIMT2BvYSg8CPQJzOx8Ead_ogezW2B51RyB5BnQKnZvD_Z6AiSA4YpLRQGf6wWjucVB8hLdQl4BcYVjq4DordVw124hvdIeedsZKSk95oFtD0LzPzqIIDDi_Q5HxR1gysxbwN0hdzhsdJSpCG9cb0GJPnuw0P4tHNoVFbo1SZnTc0oR6UddpuZHkbu_P8LTiRXHsHJdxzecrKJ5IntSNNReXsXh-f8ov2Awr25BOma7B_jtwnbHMz1Zf9o13-gTF4Q28WlSwXNT_TVVfqF4z1XViKrCE9x2DhdS7GIRsTwXjKST8MFjTYiuV9MdpRkycbSUHyEp1BEeKOs9W53Pk8Y3ecSrZ-Nikeeqzd6w50VYpM4Ev-Nl-3QAvVL-8ZsRDHExs8AaYyHiaBCS-0znykKj-VsPRBJvJMJpQxVgmHA6s-yB7fOSNsfCDrLnqiQU1YbHqVvXVd94ihdzy9UwP6btV1OhNBXJO8womiasuG8j-5eayihvEYr3aTD_TNi8y4mEKSjK7LeF2y_8jTqSXXVBoz47tOYuY9_zDtX_c4pEls1-_AW34b4I.Z983Kg.ct20X13FumpCOJujgoGO0bpvRGA'}
+[DEBUG 2025-03-22 18:29:54.443] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:29:54.445] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:29:54.445] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:29:54.446] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:29:54.446] From session - text length: 988
+[DEBUG 2025-03-22 18:29:54.447] Final text length to return: 988
+[DEBUG 2025-03-22 18:29:54.447] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:29:58.753] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:29:58.769] Request method: POST
+[DEBUG 2025-03-22 18:29:58.769] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU12LE0EQ_CtNQNiFvZhsPJWIiPhwHHKicA8B95DenU4yMDuzzIebKP53e2YnyZ0PCj6Fna6urq6u_Jx1Sg6tQSu-eTr42Xr2JZDz0mhYrhv9wWgnBVlADagsoTheeYtSk4AbDM5JLvTy4IMl6I0gBcXN3V0Jfo8epIMT2BvYSg8CPQJzOx8Ead_ogezW2B51RyB5BnQKnZvD_Z6AiSA4YpLRQGf6wWjucVB8hLdQl4BcYVjq4DordVw124hvdIeedsZKSk95oFtD0LzPzqIIDDi_Q5HxR1gysxbwN0hdzhsdJSpCG9cb0GJPnuw0P4tHNoVFbo1SZnTc0oR6UddpuZHkbu_P8LTiRXHsHJdxzecrKJ5IntSNNReXsXh-f8ov2Awr25BOma7B_jtwnbHMz1Zf9o13-gTF4Q28WlSwXNT_TVVfqF4z1XViKrCE9x2DhdS7GIRsTwXjKST8MFjTYiuV9MdpRkycbSUHyEp1BEeKOs9W53Pk8Y3ecSrZ-Nikeeqzd6w50VYpM4Ev-Nl-3QAvVL-8ZsRDHExs8AaYyHiaBCS-0znykKj-VsPRBJvJMJpQxVgmHA6s-yB7fOSNsfCDrLnqiQU1YbHqVvXVd94ihdzy9UwP6btV1OhNBXJO8womiasuG8j-5eayihvEYr3aTD_TNi8y4mEKSjK7LeF2y_8jTqSXXVBoz47tOYuY9_zDtX_c4pEls1-_AW34b4I.Z983Kg.ct20X13FumpCOJujgoGO0bpvRGA'}
+[DEBUG 2025-03-22 18:29:58.772] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:29:58.772] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:29:58.772] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:29:58.773] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:29:58.773] From session - text length: 988
+[DEBUG 2025-03-22 18:29:58.774] Final text length to return: 988
+[DEBUG 2025-03-22 18:29:58.774] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:30:01.142] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:30:01.142] Request method: POST
+[DEBUG 2025-03-22 18:30:01.142] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU12LE0EQ_CtNQNiFvZhsPJWIiPhwHHKicA8B95DenU4yMDuzzIebKP53e2YnyZ0PCj6Fna6urq6u_Jx1Sg6tQSu-eTr42Xr2JZDz0mhYrhv9wWgnBVlADagsoTheeYtSk4AbDM5JLvTy4IMl6I0gBcXN3V0Jfo8epIMT2BvYSg8CPQJzOx8Ead_ogezW2B51RyB5BnQKnZvD_Z6AiSA4YpLRQGf6wWjucVB8hLdQl4BcYVjq4DordVw124hvdIeedsZKSk95oFtD0LzPzqIIDDi_Q5HxR1gysxbwN0hdzhsdJSpCG9cb0GJPnuw0P4tHNoVFbo1SZnTc0oR6UddpuZHkbu_P8LTiRXHsHJdxzecrKJ5IntSNNReXsXh-f8ov2Awr25BOma7B_jtwnbHMz1Zf9o13-gTF4Q28WlSwXNT_TVVfqF4z1XViKrCE9x2DhdS7GIRsTwXjKST8MFjTYiuV9MdpRkycbSUHyEp1BEeKOs9W53Pk8Y3ecSrZ-Nikeeqzd6w50VYpM4Ev-Nl-3QAvVL-8ZsRDHExs8AaYyHiaBCS-0znykKj-VsPRBJvJMJpQxVgmHA6s-yB7fOSNsfCDrLnqiQU1YbHqVvXVd94ihdzy9UwP6btV1OhNBXJO8womiasuG8j-5eayihvEYr3aTD_TNi8y4mEKSjK7LeF2y_8jTqSXXVBoz47tOYuY9_zDtX_c4pEls1-_AW34b4I.Z983Kg.ct20X13FumpCOJujgoGO0bpvRGA'}
+[DEBUG 2025-03-22 18:30:01.147] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:30:01.147] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:30:01.148] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:30:01.148] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:30:01.148] From session - text length: 988
+[DEBUG 2025-03-22 18:30:01.149] Final text length to return: 988
+[DEBUG 2025-03-22 18:30:01.149] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:30:35.022] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:30:35.023] Request method: POST
+[DEBUG 2025-03-22 18:30:35.024] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU12LE0EQ_CtNQNiFvZhsPJWIiPhwHHKicA8B95DenU4yMDuzzIebKP53e2YnyZ0PCj6Fna6urq6u_Jx1Sg6tQSu-eTr42Xr2JZDz0mhYrhv9wWgnBVlADagsoTheeYtSk4AbDM5JLvTy4IMl6I0gBcXN3V0Jfo8epIMT2BvYSg8CPQJzOx8Ead_ogezW2B51RyB5BnQKnZvD_Z6AiSA4YpLRQGf6wWjucVB8hLdQl4BcYVjq4DordVw124hvdIeedsZKSk95oFtD0LzPzqIIDDi_Q5HxR1gysxbwN0hdzhsdJSpCG9cb0GJPnuw0P4tHNoVFbo1SZnTc0oR6UddpuZHkbu_P8LTiRXHsHJdxzecrKJ5IntSNNReXsXh-f8ov2Awr25BOma7B_jtwnbHMz1Zf9o13-gTF4Q28WlSwXNT_TVVfqF4z1XViKrCE9x2DhdS7GIRsTwXjKST8MFjTYiuV9MdpRkycbSUHyEp1BEeKOs9W53Pk8Y3ecSrZ-Nikeeqzd6w50VYpM4Ev-Nl-3QAvVL-8ZsRDHExs8AaYyHiaBCS-0znykKj-VsPRBJvJMJpQxVgmHA6s-yB7fOSNsfCDrLnqiQU1YbHqVvXVd94ihdzy9UwP6btV1OhNBXJO8womiasuG8j-5eayihvEYr3aTD_TNi8y4mEKSjK7LeF2y_8jTqSXXVBoz47tOYuY9_zDtX_c4pEls1-_AW34b4I.Z983Kg.ct20X13FumpCOJujgoGO0bpvRGA'}
+[DEBUG 2025-03-22 18:30:35.025] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:30:35.026] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:30:35.026] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:30:35.027] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:30:35.027] From session - text length: 988
+[DEBUG 2025-03-22 18:30:35.027] Final text length to return: 988
+[DEBUG 2025-03-22 18:30:35.028] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:30:38.766] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:30:38.768] Request method: POST
+[DEBUG 2025-03-22 18:30:38.768] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU12LE0EQ_CtNQNiFvZhsPJWIiPhwHHKicA8B95DenU4yMDuzzIebKP53e2YnyZ0PCj6Fna6urq6u_Jx1Sg6tQSu-eTr42Xr2JZDz0mhYrhv9wWgnBVlADagsoTheeYtSk4AbDM5JLvTy4IMl6I0gBcXN3V0Jfo8epIMT2BvYSg8CPQJzOx8Ead_ogezW2B51RyB5BnQKnZvD_Z6AiSA4YpLRQGf6wWjucVB8hLdQl4BcYVjq4DordVw124hvdIeedsZKSk95oFtD0LzPzqIIDDi_Q5HxR1gysxbwN0hdzhsdJSpCG9cb0GJPnuw0P4tHNoVFbo1SZnTc0oR6UddpuZHkbu_P8LTiRXHsHJdxzecrKJ5IntSNNReXsXh-f8ov2Awr25BOma7B_jtwnbHMz1Zf9o13-gTF4Q28WlSwXNT_TVVfqF4z1XViKrCE9x2DhdS7GIRsTwXjKST8MFjTYiuV9MdpRkycbSUHyEp1BEeKOs9W53Pk8Y3ecSrZ-Nikeeqzd6w50VYpM4Ev-Nl-3QAvVL-8ZsRDHExs8AaYyHiaBCS-0znykKj-VsPRBJvJMJpQxVgmHA6s-yB7fOSNsfCDrLnqiQU1YbHqVvXVd94ihdzy9UwP6btV1OhNBXJO8womiasuG8j-5eayihvEYr3aTD_TNi8y4mEKSjK7LeF2y_8jTqSXXVBoz47tOYuY9_zDtX_c4pEls1-_AW34b4I.Z983Kg.ct20X13FumpCOJujgoGO0bpvRGA'}
+[DEBUG 2025-03-22 18:30:38.772] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:30:38.772] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:30:38.772] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:30:38.773] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:30:38.773] From session - text length: 988
+[DEBUG 2025-03-22 18:30:38.773] Final text length to return: 988
+[DEBUG 2025-03-22 18:30:38.773] Session keys: ['clipboard_text']
+[DEBUG 2025-03-22 18:30:50.151] 
+==== /select-text endpoint called ====
+[DEBUG 2025-03-22 18:30:50.153] Request method: POST
+[DEBUG 2025-03-22 18:30:50.153] Request headers: {'Host': '127.0.0.1:5000', 'Connection': 'keep-alive', 'Content-Length': '16', 'Sec-Ch-Ua-Platform': '"Windows"', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0', 'Sec-Ch-Ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Microsoft Edge";v="134"', 'Dnt': '1', 'Content-Type': 'application/json', 'Sec-Ch-Ua-Mobile': '?0', 'Accept': '*/*', 'Origin': 'http://127.0.0.1:5000', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty', 'Referer': 'http://127.0.0.1:5000/', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Accept-Language': 'en,en-GB;q=0.9,en-US;q=0.8,zh-CN;q=0.7,zh;q=0.6,fr;q=0.5,zh-TW;q=0.4,en-CA;q=0.3', 'Cookie': 'session=.eJydU12LE0EQ_CtNQNiFvZhsPJWIiPhwHHKicA8B95DenU4yMDuzzIebKP53e2YnyZ0PCj6Fna6urq6u_Jx1Sg6tQSu-eTr42Xr2JZDz0mhYrhv9wWgnBVlADagsoTheeYtSk4AbDM5JLvTy4IMl6I0gBcXN3V0Jfo8epIMT2BvYSg8CPQJzOx8Ead_ogezW2B51RyB5BnQKnZvD_Z6AiSA4YpLRQGf6wWjucVB8hLdQl4BcYVjq4DordVw124hvdIeedsZKSk95oFtD0LzPzqIIDDi_Q5HxR1gysxbwN0hdzhsdJSpCG9cb0GJPnuw0P4tHNoVFbo1SZnTc0oR6UddpuZHkbu_P8LTiRXHsHJdxzecrKJ5IntSNNReXsXh-f8ov2Awr25BOma7B_jtwnbHMz1Zf9o13-gTF4Q28WlSwXNT_TVVfqF4z1XViKrCE9x2DhdS7GIRsTwXjKST8MFjTYiuV9MdpRkycbSUHyEp1BEeKOs9W53Pk8Y3ecSrZ-Nikeeqzd6w50VYpM4Ev-Nl-3QAvVL-8ZsRDHExs8AaYyHiaBCS-0znykKj-VsPRBJvJMJpQxVgmHA6s-yB7fOSNsfCDrLnqiQU1YbHqVvXVd94ihdzy9UwP6btV1OhNBXJO8womiasuG8j-5eayihvEYr3aTD_TNi8y4mEKSjK7LeF2y_8jTqSXXVBoz47tOYuY9_zDtX_c4pEls1-_AW34b4I.Z983Kg.ct20X13FumpCOJujgoGO0bpvRGA'}
+[DEBUG 2025-03-22 18:30:50.155] Current session ID: no-session-id
+[DEBUG 2025-03-22 18:30:50.156] Request data: {'action': 'get'}
+[DEBUG 2025-03-22 18:30:50.156] Action: get, Text length: 0
+[DEBUG 2025-03-22 18:30:50.156] Retrieving text - checking multiple sources
+[DEBUG 2025-03-22 18:30:50.157] From session - text length: 988
+[DEBUG 2025-03-22 18:30:50.157] Final text length to return: 988
+[DEBUG 2025-03-22 18:30:50.157] Session keys: ['clipboard_text']

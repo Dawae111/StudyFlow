@@ -1,18 +1,19 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, session
 import os
 import uuid
 from werkzeug.utils import secure_filename
 from app.utils.file_processor import process_file, process_pdf, process_image, save_processed_data
 from app.utils.document_analyzer import generate_summary, get_answer, get_available_models, validate_model_name, DEFAULT_QA_MODEL
-from app.utils.gcs_utils import upload_file_to_gcs, list_files_in_bucket, get_file_from_gcs
+from app.utils.gcs_utils import upload_file_to_gcs, list_files_in_bucket
 import glob
 import json
 import tempfile
+#import pyperclip
+import traceback
 
 api = Blueprint('api', __name__)
 
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
-
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -23,24 +24,23 @@ def add_page():
     """Handles adding a new page to an existing document"""
     try:
         print("⭐ /add-page endpoint called")
-
+        
         # Check for file in request
         if 'file' not in request.files:
             print("ERROR: No file part in request")
             return jsonify({'error': 'No file part', 'success': False}), 400
-
+        
         # Get document ID from form data and sanitize it
         file = request.files['file']
         document_id = request.form.get('documentId', '')
-
+        
         # Sanitize document_id to remove any path characters
         if '\\' in document_id or '/' in document_id:
-            print(
-                f"WARNING: Document ID contains path separators: {document_id}")
+            print(f"WARNING: Document ID contains path separators: {document_id}")
             # Extract just the filename portion
             document_id = os.path.basename(document_id)
             print(f"Sanitized document ID: {document_id}")
-
+        
         print(f"⭐ Received request with document ID: {document_id}")
 
         if not document_id:
@@ -50,7 +50,7 @@ def add_page():
         if file.filename == '':
             print("ERROR: No selected file")
             return jsonify({'error': 'No selected file', 'success': False}), 400
-
+        
         # Check if file type is allowed
         if file and allowed_file(file.filename):
             # Generate a unique filename for the new page
@@ -60,9 +60,8 @@ def add_page():
 
             # Save the file in the upload directory
             upload_folder = current_app.config['UPLOAD_FOLDER']
-            # Ensure upload folder exists
-            os.makedirs(upload_folder, exist_ok=True)
-
+            os.makedirs(upload_folder, exist_ok=True)  # Ensure upload folder exists
+            
             file_path = os.path.join(upload_folder, unique_filename)
             print(f"Saving new page file to: {file_path}")
             file.save(file_path)
@@ -70,19 +69,17 @@ def add_page():
             # Try to find the document data in different possible locations
             document_file = None
             document_data = None
-
+            
             # List of possible locations to check
             locations = [
-                os.path.join(upload_folder, 'studyflow',
-                             f"{document_id}.json"),
-                os.path.join(tempfile.gettempdir(),
-                             'studyflow', f"{document_id}.json")
+                os.path.join(upload_folder, 'studyflow', f"{document_id}.json"),
+                os.path.join(tempfile.gettempdir(), 'studyflow', f"{document_id}.json")
             ]
-
+            
             for loc in locations:
                 directory = os.path.dirname(loc)
                 os.makedirs(directory, exist_ok=True)
-
+                
                 if os.path.exists(loc):
                     document_file = loc
                     print(f"Found document at: {document_file}")
@@ -92,23 +89,23 @@ def add_page():
                         break
                     except Exception as e:
                         print(f"Error loading document from {loc}: {str(e)}")
-
+            
             # If document not found, check if we should create a new one
             if not document_data:
                 print("Document not found in any location - creating new document data")
-
+                
                 # For this example, create minimal document data when not found
                 document_data = {
                     'file_id': document_id,
                     'pages': []
                 }
-
+                
                 # Use the first location as the save location
                 document_file = locations[0]
 
             # Process the uploaded file to extract text and page count
             # Assume we have a function that processes various file types
-
+            
             # Create temp file info for processing
             new_file_info = {
                 'id': unique_filename.split('.')[0],
@@ -116,7 +113,7 @@ def add_page():
                 'path': file_path,
                 'type': file_ext
             }
-
+            
             # Process file to extract text
             if file_ext == 'pdf':
                 new_pages_data = process_pdf(file_path)
@@ -129,38 +126,35 @@ def add_page():
                     'summary': f'Uploaded file: {original_filename}',
                     'notes': ''
                 }]
-
+                
             # Calculate the starting page number for the new pages
             start_page_num = len(document_data.get('pages', [])) + 1
-
+            
             # Now, if both files are PDFs, try to merge them
             try:
                 import PyPDF2
-
+                
                 # Find the original PDF file path
                 original_files = []
                 for filename in os.listdir(upload_folder):
                     if filename.startswith(document_id) and filename.lower().endswith('.pdf'):
-                        original_files.append(
-                            os.path.join(upload_folder, filename))
-
+                        original_files.append(os.path.join(upload_folder, filename))
+                
                 # If we found the original file and both are PDFs
                 if original_files and file_ext.lower() == 'pdf':
                     original_pdf_path = original_files[0]
-                    merged_pdf_path = os.path.join(
-                        upload_folder, f"{document_id}.pdf")
-
-                    print(
-                        f"Attempting to merge PDFs: {original_pdf_path} and {file_path}")
-
+                    merged_pdf_path = os.path.join(upload_folder, f"{document_id}.pdf")
+                    
+                    print(f"Attempting to merge PDFs: {original_pdf_path} and {file_path}")
+                    
                     merger = PyPDF2.PdfMerger()
                     merger.append(original_pdf_path)
                     merger.append(file_path)
                     merger.write(merged_pdf_path)
                     merger.close()
-
+                    
                     print(f"Successfully merged PDFs to: {merged_pdf_path}")
-
+                    
                     # Optionally update the document data to point to the merged file
                     # This depends on how your viewer loads files
                     document_data['merged_pdf'] = True
@@ -169,22 +163,21 @@ def add_page():
             except Exception as e:
                 print(f"Error merging PDFs: {str(e)}")
                 # If merge fails, we still have the individual files
-
+            
             # Renumber the new pages and add them to the document
             for i, page in enumerate(new_pages_data):
                 page['page_number'] = start_page_num + i
                 document_data['pages'].append(page)
-
+            
             # Save updated document data
             print(f"Saving updated document to: {document_file}")
             directory = os.path.dirname(document_file)
             os.makedirs(directory, exist_ok=True)
-
+            
             with open(document_file, 'w') as f:
                 json.dump(document_data, f)
 
-            print(
-                f"Added {len(new_pages_data)} pages to document {document_id}")
+            print(f"Added {len(new_pages_data)} pages to document {document_id}")
             return jsonify({
                 'message': f'New page(s) added successfully - {len(new_pages_data)} pages',
                 'success': True,
@@ -217,8 +210,7 @@ def remove_page():
             return jsonify({'error': 'Invalid document ID or page number'}), 400
 
         # Load document data
-        temp_dir = os.path.join(os.path.join(
-            current_app.config['UPLOAD_FOLDER'], 'studyflow'))
+        temp_dir = os.path.join(os.path.join(current_app.config['UPLOAD_FOLDER'], 'studyflow'))
         document_file = os.path.join(temp_dir, f"{document_id}.json")
 
         if not os.path.exists(document_file):
@@ -228,8 +220,7 @@ def remove_page():
             document_data = json.load(f)
 
         # Filter out the page to be removed
-        document_data['pages'] = [
-            p for p in document_data['pages'] if p['page_number'] != page_id]
+        document_data['pages'] = [p for p in document_data['pages'] if p['page_number'] != page_id]
 
         # Reorder remaining pages
         for index, page in enumerate(document_data['pages']):
@@ -247,21 +238,21 @@ def remove_page():
 
     except Exception as e:
         return jsonify({'error': f'Server error: {str(e)}'}), 500
-
-
+    
+    
 @api.route('/upload', methods=['POST'])
 def upload_file():
     """Handle file upload and initial processing"""
     if 'file' not in request.files:
         print("No file part in the request")
         return jsonify({'error': 'No file part'}), 400
-
+    
     file = request.files['file']
-
+    
     if file.filename == '':
         print("No file selected")
         return jsonify({'error': 'No file selected'}), 400
-
+    
     try:
         if file and allowed_file(file.filename):
             # Create a unique filename
@@ -269,31 +260,30 @@ def upload_file():
             filename = secure_filename(file.filename)
             ext = os.path.splitext(filename)[1].lower()
             new_filename = f"{file_id}{ext}"
-
+            
             # Save the file locally
             upload_folder = current_app.config['UPLOAD_FOLDER']
             file_path = os.path.join(upload_folder, new_filename)
             file.save(file_path)
-
+            
             # Reset file stream to beginning before uploading to GCS
             file.seek(0)
-
+            
             # Upload to GCS with the same filename
-            gcs_url = upload_file_to_gcs(
-                file, file_id, ext[1:], original_filename=filename)
-
+            gcs_url = upload_file_to_gcs(file, file_id, ext[1:], original_filename=filename)
+            
             # Process the file based on its type
             processed_data = process_file(file_path)
-
+            
             # Save processed data
             save_processed_data(file_id, processed_data)
-
+            
             # Return success response with the file ID and GCS URL
             return jsonify({
                 'file_id': file_id,
                 'message': 'File uploaded and processed successfully',
                 'filename': filename,
-                'file_url': gcs_url  # added
+                'file_url': gcs_url # added
             }), 200
         else:
             print(f"File type not allowed: {file.filename}")
@@ -301,7 +291,6 @@ def upload_file():
     except Exception as e:
         print(f"Error uploading file: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
-
 
 @api.route('/analyze/<file_id>', methods=['POST'])
 def analyze_file(file_id):
@@ -311,25 +300,16 @@ def analyze_file(file_id):
         # Get model param from request if provided
         data = request.get_json() or {}
         model = data.get('model', None)  # Use default if not specified
-
+        
         temp_dir = os.path.join(tempfile.gettempdir(), 'studyflow')
         file_path = os.path.join(temp_dir, f"{file_id}.json")
         
-        print(f"Looking for JSON file at: {file_path}")
-        print(f"File exists: {os.path.exists(file_path)}")
-        
-        # Also check upload folder
-        upload_folder = current_app.config['UPLOAD_FOLDER']
-        upload_json_path = os.path.join(upload_folder, 'studyflow', f"{file_id}.json")
-        print(f"Also checking upload folder: {upload_json_path}")
-        print(f"File exists in upload folder: {os.path.exists(upload_json_path)}")
-
-        if not os.path.exists(file_path) and not os.path.exists(upload_json_path):
+        if not os.path.exists(file_path):
             return jsonify({'error': 'File not found'}), 404
-
+            
         with open(file_path, 'r') as f:
             file_data = json.load(f)
-
+            
         # Generate summaries for each page
         for page in file_data.get('pages', []):
             page_text = page.get('text', '')
@@ -338,20 +318,19 @@ def analyze_file(file_id):
                 page['summary'] = generate_summary(page_text, model=model)
             else:
                 page['summary'] = "No text content available to summarize."
-
+                
         # Save updated data
         with open(file_path, 'w') as f:
             json.dump(file_data, f)
-
+            
         return jsonify({'status': 'success', 'message': 'Analysis complete'}), 200
     except Exception as e:
         print(f"Error analyzing file: {str(e)}")
         return jsonify({'error': f'Error analyzing file: {str(e)}'}), 500
 
-
 @api.route('/summaries/<file_id>', methods=['GET'])
 def get_summaries(file_id):
-    """Get summaries for a file, checking local storage first then GCS"""
+    """Get summaries for a file"""
     import os
     import json
     import tempfile
@@ -493,10 +472,10 @@ def get_summaries(file_id):
 def ask_question():
     """Ask a question about the document content"""
     data = request.get_json()
-
+    
     if not data:
         return jsonify({'error': 'No data provided'}), 400
-
+    
     # Handle both camelCase and snake_case parameter names
     question = data.get('question')
     file_id = data.get('file_id') or data.get('fileId')
@@ -541,7 +520,6 @@ def ask_question():
         print(f"Error processing question: {str(e)}")
         return jsonify({'error': 'Error processing your question'}), 500
 
-
 @api.route('/notes/<page_id>', methods=['PUT'])
 def update_notes(page_id):
     """Update user notes for a page"""
@@ -559,21 +537,18 @@ def update_notes(page_id):
         'message': 'Notes updated successfully'
     }), 200
 
-
 @api.route('/debug/document/<file_id>', methods=['GET'])
 def debug_document(file_id):
     """Debug endpoint to check document data"""
     import json
     import os
     import tempfile
-
     response_data = {
         'file_id': file_id,
         'locations_checked': [],
         'document_found': False,
         'document_data': None
     }
-
     # Check uploads/studyflow location
     upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'studyflow')
     file_path1 = os.path.join(upload_dir, f"{file_id}.json")
@@ -581,7 +556,6 @@ def debug_document(file_id):
         'path': file_path1,
         'exists': os.path.exists(file_path1)
     })
-
     # Check temp/studyflow location
     temp_dir = os.path.join(tempfile.gettempdir(), 'studyflow')
     file_path2 = os.path.join(temp_dir, f"{file_id}.json")
@@ -589,7 +563,6 @@ def debug_document(file_id):
         'path': file_path2,
         'exists': os.path.exists(file_path2)
     })
-
     # Load file if found
     for location in response_data['locations_checked']:
         if location['exists']:
@@ -612,7 +585,6 @@ def health_check():
         'message': 'API is operational'
     }), 200
 
-
 @api.route('/models', methods=['GET'])
 def get_models():
     """Get information about available AI models"""
@@ -622,6 +594,76 @@ def get_models():
     except Exception as e:
         print(f"Error retrieving model information: {str(e)}")
         return jsonify({'error': 'Error retrieving model information'}), 500
+
+#@api.route('/select-text', methods=['POST'])
+# def select_text():
+#     """Endpoint to handle text selection and clipboard operations"""
+#     try:
+#         print("\n🔍 /select-text endpoint called")
+#         data = request.json
+#         print(f"🔍 Request data: {data}")
+        
+#         action = data.get('action', '')
+#         text = data.get('text', '')
+        
+#         print(f"🔍 Action: {action}, Text length: {len(text) if text else 0}")
+        
+#         if action == 'copy':
+#             print(f"🔍 Storing text in session (length: {len(text)})")
+#             # Save the text to be retrieved later
+#             session['clipboard_text'] = text
+            
+#             # Debug: Check if text was stored correctly
+#             stored_text = session.get('clipboard_text', '')
+#             print(f"🔍 Verified stored text length: {len(stored_text)}")
+            
+#             # Also try to use pyperclip as a backup
+#             try:
+#                 pyperclip.copy(text)
+#                 print("🔍 Text also copied using pyperclip")
+#             except Exception as e:
+#                 print(f"⚠️ Pyperclip error (non-critical): {str(e)}")
+            
+#             return jsonify({
+#                 'success': True,
+#                 'message': 'Text saved to server clipboard'
+#             })
+        
+#         elif action == 'get':
+#             # Return previously stored text
+#             clipboard_text = session.get('clipboard_text', '')
+#             print(f"🔍 Retrieving text from session (length: {len(clipboard_text)})")
+            
+#             # If session is empty, try pyperclip as fallback
+#             if not clipboard_text:
+#                 try:
+#                     clipboard_text = pyperclip.paste()
+#                     print(f"🔍 Used pyperclip fallback, got text length: {len(clipboard_text)}")
+#                 except Exception as e:
+#                     print(f"⚠️ Pyperclip paste error: {str(e)}")
+            
+#             # Debug session object
+#             print(f"🔍 Current session keys: {list(session.keys())}")
+#             print(f"🔍 Session ID: {session.sid if hasattr(session, 'sid') else 'No session ID'}")
+            
+#             return jsonify({
+#                 'success': True,
+#                 'text': clipboard_text
+#             })
+        
+#         print(f"⚠️ Invalid action specified: {action}")
+#         return jsonify({
+#             'success': False,
+#             'error': 'Invalid action specified'
+#         }), 400
+        
+#     except Exception as e:
+#         print(f"🚨 Error in select-text endpoint: {str(e)}")
+#         print(f"🚨 Traceback: {traceback.format_exc()}")
+#         return jsonify({
+#             'success': False,
+#             'error': str(e)
+#         }), 500 
 
 
 @api.route('/files', methods=['GET'])

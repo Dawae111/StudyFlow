@@ -5,7 +5,14 @@ export class DocumentViewer {
         this.elements = elements;
         this.currentPageId = 1;
         this.documentData = null;
+        this.pdfDocument = null;
+        this.pdfPageRendering = false;
+        this.pdfPagePending = null;
+        this.pdfCurrentZoom = 1.0;
+
         this.setupEventListeners();
+
+        this.setupGlobalClipboardListener();
     }
 
     setupEventListeners() {
@@ -70,7 +77,6 @@ export class DocumentViewer {
         // Calculate preview text
         const previewText = page.text ? page.text.substring(0, 10) + '...' : 'No text';
 
-        // Create a more informative thumbnail
         pageElement.innerHTML = `
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
@@ -88,8 +94,6 @@ export class DocumentViewer {
             this.currentPageId = page.page_number;
             this.renderCurrentPage();
             this.updateActiveThumbnail();
-
-            // Navigate to the corresponding PDF page
             this.navigateToPdfPage(page.page_number);
         });
 
@@ -135,9 +139,22 @@ export class DocumentViewer {
         if (!page) return null;
 
         this.elements.currentPageContent.innerHTML = this.getPageContentHTML(page);
-        this.setupToggleTextButton();
 
-        // Notify other components about the page change
+        if (this.documentData.file_type === 'pdf') {
+            if (this.lastDocumentId !== this.getDocumentId()) {
+                this.pdfDocument = null;
+                this.lastDocumentId = this.getDocumentId();
+            }
+            
+            setTimeout(() => {
+                this.renderPdf(this.currentPageId);
+                this.setupZoomControls();
+            }, 100);
+        }
+
+        this.setupToggleTextButton();
+        this.setupTextActionButtons();
+
         this.updateRightPanel();
 
         console.log(`DocumentViewer rendered page ${this.currentPageId}`);
@@ -168,7 +185,7 @@ export class DocumentViewer {
 
     getDefaultContentHTML(page) {
         return `
-            <div class="overflow-auto h-screen">
+            <div class="overflow-auto h-full">
                 <div class="text-sm whitespace-pre-wrap">${page.text}</div>
             </div>
             ${this.getPageIndicatorHTML()}
@@ -177,7 +194,7 @@ export class DocumentViewer {
 
     getImageContentHTML(page) {
         return `
-            <div class="mb-2 overflow-auto h-screen">
+            <div class="mb-2 overflow-auto h-full">
                 <img src="${this.documentData.file_url}" class="max-w-full h-auto rounded" alt="Uploaded image">
             </div>
             ${this.getPageIndicatorHTML()}
@@ -190,12 +207,8 @@ export class DocumentViewer {
         const totalPages = this.documentData.pages.length;
         const currentPage = page.page_number;
 
-
-        // Create URL with page fragment for initial load
-        const pdfUrl = `${this.documentData.file_url.split('#')[0]}#page=${page.page_number}`;
-
         return `
-            <div class="relative mb-1 h-full">
+            <div class="relative mb-1 h-[70vh]" id="pdf-container-wrapper">
                 <div class="absolute top-1 left-1 right-1 flex justify-between items-center z-10 bg-white bg-opacity-80 rounded p-1 text-xs">
                     <p class="text-gray-500 italic">${pdfLabel} - ${this.documentData.pages.length} pages</p>
                     <a href="${this.documentData.download_url}" download class="text-indigo-600 hover:underline flex items-center">
@@ -213,16 +226,33 @@ export class DocumentViewer {
                     </button>
                 </div>
                 
-                <div class="pdf-container h-full">
-                    <object id="pdf-viewer-object" data="${pdfUrl}" 
-                        type="application/pdf" width="100%" height="100%" class="border rounded h-full">
-                        <div class="p-4 bg-gray-100 rounded">
-                            <p>It seems your browser doesn't support embedded PDFs.</p>
-                            <a href="${pdfUrl}" target="_blank" class="text-indigo-600 hover:underline">
-                                <i class="fas fa-external-link-alt mr-1"></i> Open PDF in new tab
-                            </a>
+                <div class="pdf-container h-screen relative">
+                    <div id="pdf-loading" class="hidden">
+                        <div class="flex items-center">
+                            <div class="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-indigo-600 mr-2"></div>
+                            <span>Loading PDF...</span>
                         </div>
-                    </object>
+                    </div>
+                    <div id="pdf-viewer" class="h-full overflow-auto"></div>
+                </div>
+                
+                <!-- Text Action Buttons Bar -->
+                <div id="text-action-bar" class="absolute top-14 left-1 right-1 flex justify-center items-center z-20 bg-white bg-opacity-95 shadow-sm rounded p-2 text-xs">
+                    <div class="flex items-center space-x-2">
+                        <button id="explain-button" class="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50" disabled>
+                            <i class="fas fa-lightbulb mr-1"></i> Explain
+                        </button>
+                        <button id="discuss-button" class="px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50" disabled>
+                            <i class="fas fa-comments mr-1"></i> Discuss
+                        </button>
+                        <button id="summarize-button" class="px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 disabled:opacity-50" disabled>
+                            <i class="fas fa-compress-alt mr-1"></i> Summarize
+                        </button>
+                        <button id="clarify-button" class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 disabled:opacity-50" disabled>
+                            <i class="fas fa-question-circle mr-1"></i> Clarify
+                        </button>
+                        <span id="selection-info" class="text-gray-500 text-xs"></span>
+                    </div>
                 </div>
                 
                 <div class="absolute bottom-1 left-1 right-1 flex justify-between items-center z-20 bg-white bg-opacity-95 shadow-sm rounded p-2 text-xs">
@@ -233,19 +263,28 @@ export class DocumentViewer {
                         <span class="text-gray-700 mx-1">Page</span>
                         <select id="page-selector" class="bg-white border rounded px-2 py-1 text-xs">
                             ${Array.from({ length: totalPages }, (_, i) =>
-            `<option value="${i + 1}" ${i + 1 === currentPage ? 'selected' : ''}>
+                                `<option value="${i + 1}" ${i + 1 === currentPage ? 'selected' : ''}>
                                     ${i + 1}
                                 </option>`
-        ).join('')}
+                            ).join('')}
                         </select>
                         <span class="text-gray-700 mx-1">of ${totalPages}</span>
                         <button id="next-page-btn" class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 ml-1 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}">
                             <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
-                    <button id="toggle-extracted-text" class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200">
-                        <i class="fas fa-file-alt mr-1"></i> Show Text
-                    </button>
+                    <div class="flex items-center space-x-2">
+                        <button id="zoom-out-btn" class="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <span id="zoom-level">100%</span>
+                        <button id="zoom-in-btn" class="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                        <button id="toggle-extracted-text" class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200">
+                            <i class="fas fa-file-alt mr-1"></i> Show Text
+                        </button>
+                    </div>
                 </div>
             </div>
             <div id="extracted-text-container" class="mt-1 p-2 border rounded text-xs whitespace-pre-wrap bg-gray-50 hidden max-h-[20vh] overflow-auto">
@@ -275,18 +314,16 @@ export class DocumentViewer {
             const nextPageBtnBig = document.getElementById('next-page-btn-big');
             const pageSelector = document.getElementById('page-selector');
 
-            // Setup text toggle
             if (toggleBtn && textContainer) {
                 toggleBtn.addEventListener('click', () => {
                     const isHidden = textContainer.classList.contains('hidden');
                     textContainer.classList.toggle('hidden');
-                    toggleBtn.innerHTML = isHidden ?
-                        '<i class="fas fa-file-alt mr-1"></i> Hide Text' :
-                        '<i class="fas fa-file-alt mr-1"></i> Show Text';
+                    toggleBtn.innerHTML = isHidden
+                        ? '<i class="fas fa-file-alt mr-1"></i> Hide Text'
+                        : '<i class="fas fa-file-alt mr-1"></i> Show Text';
                 });
             }
 
-            // Function to navigate to previous page
             const goToPrevPage = () => {
                 if (this.currentPageId > 1) {
                     this.currentPageId--;
@@ -296,7 +333,6 @@ export class DocumentViewer {
                 }
             };
 
-            // Function to navigate to next page
             const goToNextPage = () => {
                 if (this.currentPageId < this.documentData.pages.length) {
                     this.currentPageId++;
@@ -306,7 +342,6 @@ export class DocumentViewer {
                 }
             };
 
-            // Setup pagination controls - bottom small buttons
             if (prevPageBtn) {
                 prevPageBtn.addEventListener('click', goToPrevPage);
             }
@@ -315,7 +350,6 @@ export class DocumentViewer {
                 nextPageBtn.addEventListener('click', goToNextPage);
             }
 
-            // Setup pagination controls - big center buttons
             if (prevPageBtnBig) {
                 prevPageBtnBig.addEventListener('click', goToPrevPage);
             }
@@ -615,92 +649,322 @@ export class DocumentViewer {
             clearInterval(this.pdfCheckInterval);
             this.pdfCheckInterval = null;
         }
+        
+        if (this.pdfDocument) {
+        }
     }
 
-    // Add this method to load a PDF using PDF.js
-    async loadPdfWithPdfJS(url, pageNumber) {
-        // Make sure PDF.js is loaded
-        if (!window.pdfjsLib) {
-            console.error('PDF.js library not loaded');
+    setupTextActionButtons() {
+        const explainButton = document.getElementById('explain-button');
+        const discussButton = document.getElementById('discuss-button');
+        const summarizeButton = document.getElementById('summarize-button');
+        const clarifyButton = document.getElementById('clarify-button');
+    
+        if (!explainButton || !discussButton || !summarizeButton || !clarifyButton) {
+            return;
+        }
+    
+        [explainButton, discussButton, summarizeButton, clarifyButton].forEach(btn => {
+            btn.disabled = false;
+        });
+    
+        async function copyTextToClipboard(text) {
+            if (!text) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    console.log("Copied using navigator.clipboard!");
+                    return;
+                } catch (e) {
+                    console.warn("Could not copy with Clipboard API, falling back:", e);
+                }
+            }
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = text;
+            tempTextArea.style.position = 'fixed';
+            tempTextArea.style.left = '-99999px';
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            try {
+                document.execCommand('copy');
+                console.log("Copied using document.execCommand('copy') fallback!");
+            } catch (err) {
+                console.error("Fallback copy failed", err);
+            }
+            document.body.removeChild(tempTextArea);
+        }
+        
+    
+        function getUserSelectedText() {
+            const selection = window.getSelection();
+            return selection.toString().trim() || "";
+        }
+    
+        const handleActionClick = async (actionName) => {
+            const selectedText = getUserSelectedText();
+    
+            await copyTextToClipboard(selectedText);
+    
+            let prompt;
+            switch (actionName) {
+                case 'explain':
+                    prompt = `Explain this:\n\n${selectedText}`;
+                    break;
+                case 'discuss':
+                    prompt = `Discuss this:\n\n${selectedText}`;
+                    break;
+                case 'summarize':
+                    prompt = `Summarize this:\n\n${selectedText}`;
+                    break;
+                case 'clarify':
+                    prompt = `I need clarification on:\n\n${selectedText}`;
+                    break;
+                default:
+                    prompt = selectedText;
+            }
+    
+            this.sendToQATab(prompt);
+        };
+    
+        explainButton.addEventListener('click', () => handleActionClick('explain'));
+        discussButton.addEventListener('click', () => handleActionClick('discuss'));
+        summarizeButton.addEventListener('click', () => handleActionClick('summarize'));
+        clarifyButton.addEventListener('click', () => handleActionClick('clarify'));
+    }
+
+    sendToQATab(text) {
+        console.log("sendToQATab called with text length:", text.length);
+        if (!text.trim()) {
+            console.warn('No text to send to QA tab');
             return;
         }
 
-        try {
-            // Load the PDF document
-            const loadingTask = window.pdfjsLib.getDocument(url);
-            const pdf = await loadingTask.promise;
+        // First, click the QA tab to switch to it
+        const qaTabButton = document.getElementById('tab-qa');
+        if (qaTabButton) {
+            qaTabButton.click();
+        } else {
+            console.warn("QA tab button not found");
+            return; // Exit early if we can't find the tab
+        }
 
-            // Store the PDF document reference
-            this.pdfDoc = pdf;
+        // Set the text in the question input
+        const questionInput = document.getElementById('question-input');
+        if (questionInput) {
+            questionInput.value = text;
+            questionInput.focus();
 
-            // Render the specified page
-            this.renderPdfPage(pageNumber || 1);
-
-            console.log(`PDF loaded with ${pdf.numPages} pages`);
-        } catch (error) {
-            console.error('Error loading PDF with PDF.js:', error);
+            // Now automatically click the ask button
+            const askButton = document.getElementById('ask-button');
+            if (askButton) {
+                // Use setTimeout to ensure UI is updated before clicking
+                setTimeout(() => {
+                    console.log("Auto-clicking Ask button");
+                    askButton.click();
+                }, 100);
+            } else {
+                console.warn("Ask button not found");
+            }
+        } else {
+            console.warn("Question input element not found");
         }
     }
 
-    // Method to render a specific PDF page
-    async renderPdfPage(pageNumber) {
-        if (!this.pdfDoc) return;
+    setupGlobalClipboardListener() {
+        console.log("Setting up global clipboard listener");
+        document.addEventListener('copy', async (e) => {
+            console.log("Copy event detected");
+            const selectButton = document.getElementById('select-text-button');
+            if (!selectButton || !selectButton.classList.contains('active')) {
+                console.log("Not in selection mode, ignoring copy event");
+                return;
+            }
 
-        // Make sure page number is valid
-        const pageNum = Math.max(1, Math.min(pageNumber, this.pdfDoc.numPages));
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+            console.log("Selected text length:", selectedText.length);
+
+            if (!selectedText) {
+                console.log("No text selected, ignoring copy event");
+                return;
+            }
+
+            const statusContainer = document.getElementById('selection-status');
+            if (statusContainer) {
+                statusContainer.textContent = 'Sending text to server...';
+            }
+
+            try {
+                const response = await fetch('/api/select-text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'copy',
+                        text: selectedText
+                    })
+                });
+
+                if (!response.ok) throw new Error(`Server returned ${response.status}`);
+                const data = await response.json();
+                if (data.success) {
+                    if (statusContainer) {
+                        statusContainer.textContent = 'Text copied! Click the button again to send to Q&A';
+                        statusContainer.classList.add('bg-green-100', 'text-green-800');
+                        setTimeout(() => {
+                            statusContainer.classList.remove('bg-green-100', 'text-green-800');
+                            statusContainer.textContent = 'Select text in the PDF, then press Ctrl+C to copy';
+                        }, 3000);
+                    }
+                    console.log('Text stored on server successfully.');
+                }
+            } catch (error) {
+                console.error('Error sending text to server:', error);
+                if (statusContainer) {
+                    statusContainer.textContent = 'Error sending text to server';
+                    statusContainer.classList.add('bg-red-100', 'text-red-800');
+                    setTimeout(() => {
+                        statusContainer.classList.remove('bg-red-100', 'text-red-800');
+                        statusContainer.textContent = 'Select text in the PDF, then press Ctrl+C to copy';
+                    }, 3000);
+                }
+            }
+        });
+    }
+
+    async renderPdf(pageNumber) {
+        if (!this.documentData || this.documentData.file_type !== 'pdf') {
+            return;
+        }
+
+        const pdfContainer = document.getElementById('pdf-viewer');
+        if (!pdfContainer) {
+            console.error('PDF container not found');
+            return;
+        }
+
+        const loadingIndicator = document.getElementById('pdf-loading');
+        if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+
+        pdfContainer.innerHTML = '';
 
         try {
-            // Get the page
-            const page = await this.pdfDoc.getPage(pageNum);
+            if (!this.pdfDocument) {
+                const loadingTask = pdfjsLib.getDocument(this.documentData.file_url);
+                this.pdfDocument = await loadingTask.promise;
+                console.log(`PDF loaded with ${this.pdfDocument.numPages} pages`);
+            }
 
-            // Get the PDF container element
-            const container = document.querySelector('.pdf-container');
-            if (!container) return;
+            if (pageNumber < 1 || pageNumber > this.pdfDocument.numPages) {
+                throw new Error(`Invalid page number: ${pageNumber}`);
+            }
 
-            // Clear the container
-            container.innerHTML = '<canvas id="pdf-canvas"></canvas>';
+            if (this.pdfPageRendering) {
+                this.pdfPagePending = pageNumber;
+                return;
+            }
 
-            // Get the canvas element
-            const canvas = document.getElementById('pdf-canvas');
-            const context = canvas.getContext('2d');
-
-            // Calculate the scale to fit the container
-            const viewport = page.getViewport({ scale: 1 });
-            const containerWidth = container.clientWidth;
-            const scale = containerWidth / viewport.width;
-            const scaledViewport = page.getViewport({ scale });
-
-            // Set canvas dimensions to match the viewport
-            canvas.width = scaledViewport.width;
-            canvas.height = scaledViewport.height;
-
-            // Render the page
+            this.pdfPageRendering = true;
+            
+            const page = await this.pdfDocument.getPage(pageNumber);
+            
+            const pageContainer = document.createElement('div');
+            pageContainer.className = 'page-container';
+            pageContainer.dataset.pageNumber = pageNumber;
+            pdfContainer.appendChild(pageContainer);
+            
+            const viewportOriginal = page.getViewport({ scale: 1.0 });
+            const containerWidth = pdfContainer.clientWidth - 20;
+            const scale = (containerWidth / viewportOriginal.width) * this.pdfCurrentZoom;
+            
+            const viewport = page.getViewport({ scale });
+            
+            pageContainer.style.width = `${viewport.width}px`;
+            pageContainer.style.height = `${viewport.height}px`;
+            
+            const canvas = document.createElement('canvas');
+            canvas.className = 'pdf-canvas';
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            pageContainer.appendChild(canvas);
+            
             const renderContext = {
-                canvasContext: context,
-                viewport: scaledViewport
+                canvasContext: canvas.getContext('2d'),
+                viewport
             };
-
-            await page.render(renderContext).promise;
-
-            // Update the current page ID
-            this.currentPageId = pageNum;
-            this.updateActiveThumbnail();
-            this.updateRightPanel();
-
-            console.log(`Rendered PDF page ${pageNum}`);
+            
+            const renderTask = page.render(renderContext);
+            
+            const textLayerDiv = document.createElement('div');
+            textLayerDiv.className = 'text-layer';
+            pageContainer.appendChild(textLayerDiv);
+            
+            const textContent = await page.getTextContent();
+            pdfjsLib.renderTextLayer({
+                textContent,
+                container: textLayerDiv,
+                viewport,
+                textDivs: []
+            });
+            
+            await renderTask.promise;
+            
+            this.enableTextActionButtons();
+            
+            const zoomLevelEl = document.getElementById('zoom-level');
+            if (zoomLevelEl) zoomLevelEl.textContent = `${Math.round(this.pdfCurrentZoom * 100)}%`;
+            
+            this.pdfPageRendering = false;
+            
+            if (this.pdfPagePending !== null) {
+                const pendingPage = this.pdfPagePending;
+                this.pdfPagePending = null;
+                this.renderPdf(pendingPage);
+            }
+        
         } catch (error) {
-            console.error('Error rendering PDF page:', error);
+            console.error('Error rendering PDF:', error);
+            pdfContainer.innerHTML = `
+                <div class="p-4 bg-red-100 text-red-700 rounded">
+                    <p>Error loading PDF: ${error.message}</p>
+                    <a href="${this.documentData.file_url}" target="_blank" class="text-indigo-600 hover:underline">
+                        <i class="fas fa-external-link-alt mr-1"></i> Open PDF in new tab
+                    </a>
+                </div>
+            `;
+        } finally {
+            if (loadingIndicator) loadingIndicator.classList.add('hidden');
         }
     }
 
-    // New method to handle updated summaries
-    handleSummariesUpdated(documentData) {
-        if (!documentData || !documentData.pages) {
-            console.warn('Received invalid document data for summary update');
-            return;
-        }
+    enableTextActionButtons() {
+        const actionButtons = [
+            document.getElementById('explain-button'),
+            document.getElementById('discuss-button'),
+            document.getElementById('summarize-button'),
+            document.getElementById('clarify-button')
+        ];
+        
+        actionButtons.forEach(btn => {
+            if (btn) btn.disabled = false;
+        });
+    }
 
-        // Store the updated document data
-        this.documentData = documentData;
+    setupZoomControls() {
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', () => {
+                this.pdfCurrentZoom = Math.min(this.pdfCurrentZoom + 0.2, 3.0);
+                this.renderPdf(this.currentPageId);
+            });
+        }
+        
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', () => {
+                this.pdfCurrentZoom = Math.max(this.pdfCurrentZoom - 0.2, 0.5);
+                this.renderPdf(this.currentPageId);
+            });
+        }
     }
 }
