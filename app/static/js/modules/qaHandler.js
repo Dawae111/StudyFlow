@@ -201,13 +201,32 @@ export class QAHandler {
 
     async loadAvailableModels() {
         try {
+            console.log('Loading available AI models...');
             const response = await fetch('/api/models');
-            if (response.ok) {
-                const data = await response.json();
-                this.models = data.models;
-                this.selectedModel = data.default_qa_model;
-                this.createModelSelector();
+
+            if (!response.ok) {
+                console.error(`Error loading models: ${response.status}`);
+                return;
             }
+
+            const data = await response.json();
+            console.log('Available models:', data);
+
+            this.models = data.models;
+
+            // Try to get user's preferred model from localStorage
+            const savedModel = localStorage.getItem('studyflow_preferred_model');
+
+            // Use saved model if it exists and is valid, otherwise use default
+            if (savedModel && this.models[savedModel]) {
+                console.log(`Using saved model preference: ${savedModel}`);
+                this.selectedModel = savedModel;
+            } else {
+                this.selectedModel = data.default_qa_model;
+                console.log(`Using default model: ${this.selectedModel}`);
+            }
+
+            this.createModelSelector();
         } catch (error) {
             console.error('Error loading AI models:', error);
         }
@@ -247,8 +266,18 @@ export class QAHandler {
 
         // Update when selection changes
         selector.addEventListener('change', () => {
+            const previousModel = this.selectedModel;
             this.selectedModel = selector.value;
+            console.log(`Model changed from ${previousModel} to ${this.selectedModel}`);
             this.updateModelInfo(modelInfo, this.selectedModel);
+
+            // Save user model preference to localStorage
+            try {
+                localStorage.setItem('studyflow_preferred_model', this.selectedModel);
+                console.log(`Saved user model preference: ${this.selectedModel}`);
+            } catch (e) {
+                console.warn('Could not save model preference:', e);
+            }
         });
     }
 
@@ -313,25 +342,39 @@ export class QAHandler {
 
     async fetchAnswer(questionEntry) {
         try {
+            // Log the model being used
+            console.log(`🧠 Asking question with model: ${this.selectedModel}`);
+
+            // Prepare the request payload
+            const payload = {
+                question: questionEntry.question,
+                file_id: questionEntry.fileId,
+                page_id: questionEntry.pageId,
+                model: this.selectedModel
+            };
+
+            console.log('📤 Sending request payload:', payload);
+
             // Make API call to get the answer
             const response = await fetch('/api/ask', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    question: questionEntry.question,
-                    file_id: questionEntry.fileId,
-                    page_id: questionEntry.pageId,
-                    model: this.selectedModel
-                })
+                body: JSON.stringify(payload)
             });
 
             if (!response.ok) {
-                throw new Error('Failed to get answer');
+                const errorText = await response.text();
+                console.error(`API error: ${response.status} - ${errorText}`);
+                throw new Error(`Failed to get answer: ${response.status} - ${errorText}`);
             }
 
             const data = await response.json();
+            console.log('📥 Received response:', {
+                answer_length: data.answer?.length || 0,
+                model_used: data.model_used || 'unknown'
+            });
 
             // Skip updating if element no longer exists (user may have navigated away)
             if (!questionEntry.element || !questionEntry.element.isConnected) {

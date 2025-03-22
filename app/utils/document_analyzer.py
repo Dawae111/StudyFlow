@@ -37,9 +37,23 @@ AI_MODELS = {
     }
 }
 
-# Default model selection (can be overridden by environment variable)
-DEFAULT_SUMMARY_MODEL = os.getenv("OPENAI_SUMMARY_MODEL", "gpt-3.5-turbo")
-DEFAULT_QA_MODEL = os.getenv("OPENAI_QA_MODEL", "gpt-4-turbo")
+# Validate environment variables and default to known models if invalid
+def validate_model_name(model_name):
+    """Validate that the model name is one we support"""
+    if not model_name or model_name not in AI_MODELS:
+        print(f"Warning: Invalid model name '{model_name}', defaulting to gpt-3.5-turbo")
+        return "gpt-3.5-turbo"
+    return model_name
+
+# Get environment variables with validation
+env_summary_model = os.getenv("OPENAI_SUMMARY_MODEL", "gpt-3.5-turbo")
+env_qa_model = os.getenv("OPENAI_QA_MODEL", "gpt-4")
+
+# Default model selection (with validation)
+DEFAULT_SUMMARY_MODEL = validate_model_name(env_summary_model)
+DEFAULT_QA_MODEL = validate_model_name(env_qa_model)
+
+print(f"Model validation complete - Using summary model: {DEFAULT_SUMMARY_MODEL}, Q&A model: {DEFAULT_QA_MODEL}")
 
 def configure_openai():
     """Configure the OpenAI client with API key and base URL"""
@@ -207,11 +221,36 @@ def get_answer(question, file_id, page_id=None, model=None):
                 # Get the max tokens for the model
                 max_context_tokens = AI_MODELS.get(model, {}).get("max_tokens", 4000)
                 
-                # Limit context length to avoid token limits (allow for 25% of max tokens for response)
-                max_input_tokens = int(max_context_tokens * 0.75)
-                if len(context) > max_input_tokens * 4:
-                    context = context[:max_input_tokens * 4]
-                    print(f"Context truncated to ~{max_input_tokens} tokens for {model}")
+                # Log which model is being used
+                print(f"Using model: {model} with max_tokens: {max_context_tokens}")
+                
+                # For GPT-4-Turbo, use special handling for its larger context window
+                if model == "gpt-4-turbo":
+                    # For GPT-4-Turbo, use a larger portion of the context window
+                    # Still limit to ~100K tokens to be safe (128K is the limit)
+                    max_input_chars = 400000  # Approximate 100K tokens
+                    original_length = len(context)
+                    if len(context) > max_input_chars:
+                        context = context[:max_input_chars]
+                        print(f"Context truncated for GPT-4-Turbo from {original_length} chars to ~100K tokens")
+                else:
+                    # Original logic for other models
+                    original_length = len(context)
+                    max_input_tokens = int(max_context_tokens * 0.75)
+                    max_chars = max_input_tokens * 4  # Approximate 4 chars per token
+                    if len(context) > max_chars:
+                        context = context[:max_chars]
+                        print(f"Context truncated from {original_length} chars to ~{max_input_tokens} tokens for {model}")
+                    else:
+                        print(f"Context length OK: {len(context)} chars (~{len(context)/4} tokens) for {model}")
+                
+                # Define a reasonable output token limit based on the model
+                if model == "gpt-4-turbo":
+                    max_output_tokens = 4000  # Generous output size for turbo
+                else:
+                    max_output_tokens = int(max_context_tokens * 0.25)  # Reserve 25% of tokens for response
+                
+                print(f"Making API call to {model} with context length: {len(context)} chars and max output tokens: {max_output_tokens}")
                 
                 # Get answer using Chat completions API
                 response = openai.ChatCompletion.create(
@@ -220,11 +259,13 @@ def get_answer(question, file_id, page_id=None, model=None):
                         {"role": "system", "content": "You are a helpful assistant that answers questions based on knowledge you have and also the provided document text."},
                         {"role": "user", "content": f"Based on knowledge you have and this content:\n\n{context}\n\nAnswer this question: {question}"}
                     ],
-                    max_tokens=int(max_context_tokens * 0.25),  # Reserve 25% of tokens for response
+                    max_tokens=max_output_tokens,
                     temperature=0.5
                 )
                 
-                return response.choices[0].message.content.strip()
+                answer = response.choices[0].message.content.strip()
+                print(f"Got answer from {model} with length: {len(answer)} chars")
+                return answer
                 
             except Exception as e:
                 print(f"Error with OpenAI Q&A using {model}: {str(e)}")

@@ -3,7 +3,7 @@ import os
 import uuid
 from werkzeug.utils import secure_filename
 from app.utils.file_processor import process_file, process_pdf, process_image, save_processed_data
-from app.utils.document_analyzer import generate_summary, get_answer, get_available_models
+from app.utils.document_analyzer import generate_summary, get_answer, get_available_models, validate_model_name, DEFAULT_QA_MODEL
 import glob
 import json
 import tempfile
@@ -432,12 +432,24 @@ def ask_question():
         # Log the question for debugging
         print(f"Question asked: '{question}' for file {file_id}, page {page_id}, model {model or 'default'}")
         
-        # Get answer using the current page for better context
-        answer = get_answer(question, file_id, page_id, model=model)
+        # Validate model from document_analyzer
+        from app.utils.document_analyzer import validate_model_name, DEFAULT_QA_MODEL
         
+        # If no model specified or invalid model, use default
+        validated_model = validate_model_name(model) if model else DEFAULT_QA_MODEL
+        
+        # If model changed after validation, log it
+        if model != validated_model:
+            print(f"Model requested: {model} but using validated model: {validated_model}")
+        
+        # Get answer using the current page for better context
+        answer = get_answer(question, file_id, page_id, model=validated_model)
+        
+        # Return both the answer and the model that was actually used
         return jsonify({
             'answer': answer,
-            'model_used': model
+            'model_used': validated_model,
+            'model_requested': model
         }), 200
     except Exception as e:
         print(f"Error processing question: {str(e)}")
