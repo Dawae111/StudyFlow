@@ -8,7 +8,6 @@ from app.utils.gcs_utils import upload_file_to_gcs, list_files_in_bucket
 import glob
 import json
 import tempfile
-#import pyperclip
 import traceback
 
 api = Blueprint('api', __name__)
@@ -595,7 +594,7 @@ def get_models():
         print(f"Error retrieving model information: {str(e)}")
         return jsonify({'error': 'Error retrieving model information'}), 500
 
-#@api.route('/select-text', methods=['POST'])
+# @api.route('/select-text', methods=['POST'])
 # def select_text():
 #     """Endpoint to handle text selection and clipboard operations"""
 #     try:
@@ -664,7 +663,6 @@ def get_models():
 #             'success': False,
 #             'error': str(e)
 #         }), 500 
-
 
 @api.route('/files', methods=['GET'])
 def list_files():
