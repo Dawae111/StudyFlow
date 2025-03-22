@@ -63,12 +63,66 @@ def process_pdf(file_path):
     
     try:
         print(f"Opening PDF file: {file_path}")
+        
+        # Check if file exists
+        if not os.path.exists(file_path):
+            print(f"Error: PDF file not found at path: {file_path}")
+            return [{
+                'page_number': 1,
+                'text': f"[Error: PDF file not found at path: {file_path}]",
+                'summary': "Could not find the PDF file.",
+                'notes': ''
+            }]
+            
+        # Check file size
+        file_size = os.path.getsize(file_path)
+        print(f"PDF file size: {file_size} bytes")
+        
+        if file_size == 0:
+            print("Error: PDF file is empty (0 bytes)")
+            return [{
+                'page_number': 1,
+                'text': "[Error: PDF file is empty (0 bytes)]",
+                'summary': "The PDF file is empty.",
+                'notes': ''
+            }]
+        
         with open(file_path, 'rb') as pdf_file:
             try:
-                pdf_reader = PyPDF2.PdfReader(pdf_file)
-                num_pages = len(pdf_reader.pages)
-                print(f"PDF has {num_pages} pages")
+                # Try to handle any PDF-related exceptions
+                try:
+                    pdf_reader = PyPDF2.PdfReader(pdf_file)
+                except Exception as e:
+                    print(f"Error initializing PDF reader: {str(e)}")
+                    return [{
+                        'page_number': 1,
+                        'text': f"[Error initializing PDF reader: {str(e)}]",
+                        'summary': "Could not read the PDF format.",
+                        'notes': ''
+                    }]
                 
+                try:
+                    num_pages = len(pdf_reader.pages)
+                    print(f"PDF has {num_pages} pages")
+                except Exception as e:
+                    print(f"Error getting page count: {str(e)}")
+                    return [{
+                        'page_number': 1,
+                        'text': f"[Error getting page count: {str(e)}]",
+                        'summary': "Could not determine the number of pages.",
+                        'notes': ''
+                    }]
+                
+                if num_pages == 0:
+                    print("Warning: PDF has 0 pages")
+                    return [{
+                        'page_number': 1,
+                        'text': "[PDF has 0 pages]",
+                        'summary': "The PDF has no pages.",
+                        'notes': ''
+                    }]
+                
+                # Process each page
                 for i in range(num_pages):
                     try:
                         page = pdf_reader.pages[i]
