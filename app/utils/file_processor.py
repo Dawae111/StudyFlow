@@ -6,49 +6,48 @@ from app.utils.document_analyzer import generate_summary
 import json
 import tempfile
 
-def process_file(file_info):
-    """Process an uploaded file (PDF or image)
+def process_file(file_path):
+    """Extract text from a file and generate summaries
     
     Args:
-        file_info (dict): Dictionary containing file information
-            - id: unique file ID
-            - path: path to the file
-            - type: file extension
-            - original_name: original filename
+        file_path (str): Path to the file
     
     Returns:
-        bool: True if processing was successful, False otherwise
+        dict: Dictionary containing the extracted data
     """
     try:
-        file_path = file_info['path']
-        file_type = file_info['type'].lower()
+        # Get file extension
+        file_ext = os.path.splitext(file_path)[1].lower()
         
-        pages_data = []
-        
-        if file_type == 'pdf':
+        # Process based on file type
+        if file_ext == '.pdf':
+            print(f"Processing PDF file: {file_path}")
             pages_data = process_pdf(file_path)
-        elif file_type in ['png', 'jpg', 'jpeg']:
-            # Check if tesseract is available
-            try:
-                import shutil
-                tesseract_available = shutil.which('tesseract') is not None
-                if not tesseract_available:
-                    print("Warning: Tesseract OCR not found in PATH. OCR may not work properly.")
-                    # Still try to process the image
-            except Exception as e:
-                print(f"Error checking for Tesseract: {str(e)}")
-            
+            return {'pages': pages_data}
+        elif file_ext in ['.jpg', '.jpeg', '.png']:
+            print(f"Processing image file: {file_path}")
             pages_data = process_image(file_path)
+            return {'pages': pages_data}
         else:
-            return False
-        
-        # Save processed data
-        save_result = save_processed_data(file_info['id'], pages_data)
-        
-        return save_result
+            print(f"Unsupported file type: {file_ext}")
+            return {
+                'pages': [{
+                    'page_number': 1,
+                    'text': f"[Unsupported file type: {file_ext}]",
+                    'summary': "This file type is not supported.",
+                    'notes': ''
+                }]
+            }
     except Exception as e:
         print(f"Error processing file: {str(e)}")
-        return False
+        return {
+            'pages': [{
+                'page_number': 1,
+                'text': f"[Error processing file: {str(e)}]",
+                'summary': "An error occurred while processing this file.",
+                'notes': ''
+            }]
+        }
 
 def process_pdf(file_path):
     """Extract text from PDF file and generate summaries
@@ -263,31 +262,27 @@ def process_image(file_path):
             'notes': ''
         }]
 
-def save_processed_data(file_id, pages_data):
-    """Save processed data to a temporary JSON file (in a real app, this would go to a database)
+def save_processed_data(file_id, processed_data):
+    """Save processed data to a temporary file
     
     Args:
-        file_id (str): Unique file ID
-        pages_data (list): List of dictionaries containing page data
+        file_id (str): The ID of the file
+        processed_data (dict): The processed data to save
+    
+    Returns:
+        bool: True if successful, False otherwise
     """
     try:
-        # Create a temporary directory if it doesn't exist
+        # Create temp directory if it doesn't exist
         temp_dir = os.path.join(tempfile.gettempdir(), 'studyflow')
         os.makedirs(temp_dir, exist_ok=True)
         
-        # Save data to a JSON file
-        output_path = os.path.join(temp_dir, f"{file_id}.json")
-        
-        # Check if the directory is writable
-        if not os.access(temp_dir, os.W_OK):
-            print(f"Warning: Directory {temp_dir} is not writable")
-            # Try to use the current directory instead
-            output_path = f"{file_id}.json"
-        
-        with open(output_path, 'w') as f:
-            json.dump({'pages': pages_data}, f)
+        # Save processed data to file
+        file_path = os.path.join(temp_dir, f"{file_id}.json")
+        with open(file_path, 'w') as f:
+            json.dump(processed_data, f)
             
-        print(f"Successfully saved data to {output_path}")
+        print(f"Saved processed data to {file_path}")
         return True
     except Exception as e:
         print(f"Error saving processed data: {str(e)}")
