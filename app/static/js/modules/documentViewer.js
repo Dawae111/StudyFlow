@@ -5,6 +5,10 @@ export class DocumentViewer {
         this.elements = elements;
         this.currentPageId = 1;
         this.documentData = null;
+        this.pdfDocument = null;
+        this.pdfPageRendering = false;
+        this.pdfPagePending = null;
+        this.pdfCurrentZoom = 1.0;
 
         this.setupEventListeners();
 
@@ -122,18 +126,24 @@ export class DocumentViewer {
 
         this.elements.currentPageContent.innerHTML = this.getPageContentHTML(page);
 
-        // FIX: Make sure we initialize the text-action buttons after the PDF is in the DOM
-        this.setupToggleTextButton();
-        this.setupTextActionButtons(); // CHANGED: Call it so the "Explain" etc. buttons work
+        if (this.documentData.file_type === 'pdf') {
+            if (this.lastDocumentId !== this.getDocumentId()) {
+                this.pdfDocument = null;
+                this.lastDocumentId = this.getDocumentId();
+            }
+            
+            setTimeout(() => {
+                this.renderPdf(this.currentPageId);
+                this.setupZoomControls();
+            }, 100);
+        }
 
-        // Notify other components about the page change
+        this.setupToggleTextButton();
+        this.setupTextActionButtons();
+
         this.updateRightPanel();
 
         console.log(`DocumentViewer rendered page ${this.currentPageId}`);
-
-        if (this.documentData.file_type === 'pdf') {
-            this.monitorPdfPageChange();
-        }
 
         return page;
     }
@@ -155,7 +165,7 @@ export class DocumentViewer {
 
     getDefaultContentHTML(page) {
         return `
-            <div class="overflow-auto h-screen">
+            <div class="overflow-auto h-full">
                 <div class="text-sm whitespace-pre-wrap">${page.text}</div>
             </div>
             ${this.getPageIndicatorHTML()}
@@ -164,7 +174,7 @@ export class DocumentViewer {
 
     getImageContentHTML(page) {
         return `
-            <div class="mb-2 overflow-auto h-screen">
+            <div class="mb-2 overflow-auto h-full">
                 <img src="${this.documentData.file_url}" class="max-w-full h-auto rounded" alt="Uploaded image">
             </div>
             ${this.getPageIndicatorHTML()}
@@ -176,10 +186,9 @@ export class DocumentViewer {
         const pdfLabel = isMergedPDF ? 'Merged PDF' : 'PDF';
         const totalPages = this.documentData.pages.length;
         const currentPage = page.page_number;
-        const pdfUrl = `${this.documentData.file_url.split('#')[0]}#page=${page.page_number}`;
 
         return `
-            <div class="relative mb-1 h-full">
+            <div class="relative mb-1 h-[70vh]" id="pdf-container-wrapper">
                 <div class="absolute top-1 left-1 right-1 flex justify-between items-center z-10 bg-white bg-opacity-80 rounded p-1 text-xs">
                     <p class="text-gray-500 italic">${pdfLabel} - ${this.documentData.pages.length} pages</p>
                     <a href="${this.documentData.download_url}" download class="text-indigo-600 hover:underline flex items-center">
@@ -196,16 +205,14 @@ export class DocumentViewer {
                     </button>
                 </div>
                 
-                <div class="pdf-container h-full">
-                    <object id="pdf-viewer-object" data="${pdfUrl}" 
-                        type="application/pdf" width="100%" height="100%" class="border rounded h-full">
-                        <div class="p-4 bg-gray-100 rounded">
-                            <p>It seems your browser doesn't support embedded PDFs.</p>
-                            <a href="${pdfUrl}" target="_blank" class="text-indigo-600 hover:underline">
-                                <i class="fas fa-external-link-alt mr-1"></i> Open PDF in new tab
-                            </a>
+                <div class="pdf-container h-screen relative">
+                    <div id="pdf-loading" class="hidden">
+                        <div class="flex items-center">
+                            <div class="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-indigo-600 mr-2"></div>
+                            <span>Loading PDF...</span>
                         </div>
-                    </object>
+                    </div>
+                    <div id="pdf-viewer" class="h-full overflow-auto"></div>
                 </div>
                 
                 <!-- Text Action Buttons Bar -->
@@ -245,9 +252,18 @@ export class DocumentViewer {
                             <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
-                    <button id="toggle-extracted-text" class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200">
-                        <i class="fas fa-file-alt mr-1"></i> Show Text
-                    </button>
+                    <div class="flex items-center space-x-2">
+                        <button id="zoom-out-btn" class="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <span id="zoom-level">100%</span>
+                        <button id="zoom-in-btn" class="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                        <button id="toggle-extracted-text" class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200">
+                            <i class="fas fa-file-alt mr-1"></i> Show Text
+                        </button>
+                    </div>
                 </div>
             </div>
             <div id="extracted-text-container" class="mt-1 p-2 border rounded text-xs whitespace-pre-wrap bg-gray-50 hidden max-h-[20vh] overflow-auto">
@@ -443,9 +459,6 @@ export class DocumentViewer {
         fileInput.click();
     }
 
-    removeCurrentPage() {
-        // Omitted for brevity; unchanged from your version
-    }
 
     updateLoadingMessage(message) {
         if (this.elements.loadingMessage) {
@@ -457,58 +470,11 @@ export class DocumentViewer {
         if (!this.documentData || this.documentData.file_type !== 'pdf') {
             return;
         }
+        
         console.log(`Navigating to PDF page ${pageNumber}`);
-        const pdfObject = this.elements.currentPageContent.querySelector('object');
-        if (!pdfObject) {
-            console.warn('PDF object not found in DOM');
-            return;
-        }
-        const baseUrl = this.documentData.file_url.split('#')[0];
-        const newUrl = `${baseUrl}#page=${pageNumber}`;
-
-        pdfObject.data = newUrl;
-        setTimeout(() => {
-            if (pdfObject.data === newUrl) {
-                pdfObject.data = '';
-                setTimeout(() => {
-                    pdfObject.data = newUrl;
-                }, 50);
-            }
-        }, 100);
-    }
-
-    monitorPdfPageChange() {
-        const pdfObject = document.getElementById('pdf-viewer-object');
-        if (!pdfObject) return;
-
-        const checkInterval = setInterval(() => {
-            if (!this.documentData) {
-                clearInterval(checkInterval);
-                return;
-            }
-            const objectData = pdfObject.data;
-            if (!objectData) {
-                clearInterval(checkInterval);
-                return;
-            }
-            if (objectData.includes('#page=')) {
-                const hashPageMatch = objectData.match(/#page=(\d+)/);
-                if (hashPageMatch && hashPageMatch[1]) {
-                    const pdfPageNum = parseInt(hashPageMatch[1], 10);
-                    if (pdfPageNum !== this.currentPageId) {
-                        console.log(`PDF navigation detected to page ${pdfPageNum}`);
-                        this.currentPageId = pdfPageNum;
-                        this.updateRightPanel();
-                        this.updateActiveThumbnail();
-                        // Intentionally not re-rendering entire page
-                    }
-                }
-            }
-        }, 1000);
-        this.pdfCheckInterval = checkInterval;
-        document.addEventListener('pageChanged', () => {
-            clearInterval(this.pdfCheckInterval);
-        }, { once: true });
+        this.currentPageId = pageNumber;
+        
+        this.renderPdf(pageNumber);
     }
 
     cleanupPdfMonitoring() {
@@ -516,25 +482,25 @@ export class DocumentViewer {
             clearInterval(this.pdfCheckInterval);
             this.pdfCheckInterval = null;
         }
+        
+        if (this.pdfDocument) {
+        }
     }
 
     setupTextActionButtons() {
-        // Get the four buttons
         const explainButton = document.getElementById('explain-button');
         const discussButton = document.getElementById('discuss-button');
         const summarizeButton = document.getElementById('summarize-button');
         const clarifyButton = document.getElementById('clarify-button');
     
         if (!explainButton || !discussButton || !summarizeButton || !clarifyButton) {
-            return; // no PDF or page loaded
+            return;
         }
     
-        // We can re-enable them so user can click
         [explainButton, discussButton, summarizeButton, clarifyButton].forEach(btn => {
             btn.disabled = false;
         });
     
-        // Helper to actually do the copy:
         async function copyTextToClipboard(text) {
             if (!text) return;
             if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -546,10 +512,8 @@ export class DocumentViewer {
                     console.warn("Could not copy with Clipboard API, falling back:", e);
                 }
             }
-            // Fallback to older document.execCommand approach
             const tempTextArea = document.createElement('textarea');
             tempTextArea.value = text;
-            // Place it off-screen so it's not visible
             tempTextArea.style.position = 'fixed';
             tempTextArea.style.left = '-99999px';
             document.body.appendChild(tempTextArea);
@@ -564,26 +528,16 @@ export class DocumentViewer {
         }
         
     
-        // For demonstration, let's say we always read user-selected text from the DOM
-        // (If you prefer to "GET" from the server instead, you can do that.)
         function getUserSelectedText() {
             const selection = window.getSelection();
             return selection.toString().trim() || "";
         }
     
-        // This function gets called by any of the 4 buttons
         const handleActionClick = async (actionName) => {
-            // 1) Get the text the user has highlighted
             const selectedText = getUserSelectedText();
-            // if (!selectedText) {
-            //     alert("No text is selected in the document. Highlight something first!");
-            //     return;
-            // }
     
-            // 2) "Press Ctrl+C" in spirit by programmatically copying
             await copyTextToClipboard(selectedText);
     
-            // 3) Format the final text/prompt
             let prompt;
             switch (actionName) {
                 case 'explain':
@@ -602,11 +556,9 @@ export class DocumentViewer {
                     prompt = selectedText;
             }
     
-            // 4) Insert it into the QA tab (just like your sendToQATab method)
             this.sendToQATab(prompt);
         };
     
-        // Finally, hook each button to the handler
         explainButton.addEventListener('click', () => handleActionClick('explain'));
         discussButton.addEventListener('click', () => handleActionClick('discuss'));
         summarizeButton.addEventListener('click', () => handleActionClick('summarize'));
@@ -619,22 +571,37 @@ export class DocumentViewer {
             console.warn('No text to send to QA tab');
             return;
         }
+
+        // First, click the QA tab to switch to it
         const qaTabButton = document.getElementById('tab-qa');
         if (qaTabButton) {
             qaTabButton.click();
         } else {
             console.warn("QA tab button not found");
+            return; // Exit early if we can't find the tab
         }
+
+        // Set the text in the question input
         const questionInput = document.getElementById('question-input');
         if (questionInput) {
             questionInput.value = text;
             questionInput.focus();
+
+            // Now automatically click the ask button
+            const askButton = document.getElementById('ask-button');
+            if (askButton) {
+                // Use setTimeout to ensure UI is updated before clicking
+                setTimeout(() => {
+                    console.log("Auto-clicking Ask button");
+                    askButton.click();
+                }, 100);
+            } else {
+                console.warn("Ask button not found");
+            }
         } else {
             console.warn("Question input element not found");
         }
     }
-
-
 
     setupGlobalClipboardListener() {
         console.log("Setting up global clipboard listener");
@@ -695,5 +662,142 @@ export class DocumentViewer {
                 }
             }
         });
+    }
+
+    async renderPdf(pageNumber) {
+        if (!this.documentData || this.documentData.file_type !== 'pdf') {
+            return;
+        }
+
+        const pdfContainer = document.getElementById('pdf-viewer');
+        if (!pdfContainer) {
+            console.error('PDF container not found');
+            return;
+        }
+
+        const loadingIndicator = document.getElementById('pdf-loading');
+        if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+
+        pdfContainer.innerHTML = '';
+
+        try {
+            if (!this.pdfDocument) {
+                const loadingTask = pdfjsLib.getDocument(this.documentData.file_url);
+                this.pdfDocument = await loadingTask.promise;
+                console.log(`PDF loaded with ${this.pdfDocument.numPages} pages`);
+            }
+
+            if (pageNumber < 1 || pageNumber > this.pdfDocument.numPages) {
+                throw new Error(`Invalid page number: ${pageNumber}`);
+            }
+
+            if (this.pdfPageRendering) {
+                this.pdfPagePending = pageNumber;
+                return;
+            }
+
+            this.pdfPageRendering = true;
+            
+            const page = await this.pdfDocument.getPage(pageNumber);
+            
+            const pageContainer = document.createElement('div');
+            pageContainer.className = 'page-container';
+            pageContainer.dataset.pageNumber = pageNumber;
+            pdfContainer.appendChild(pageContainer);
+            
+            const viewportOriginal = page.getViewport({ scale: 1.0 });
+            const containerWidth = pdfContainer.clientWidth - 20;
+            const scale = (containerWidth / viewportOriginal.width) * this.pdfCurrentZoom;
+            
+            const viewport = page.getViewport({ scale });
+            
+            pageContainer.style.width = `${viewport.width}px`;
+            pageContainer.style.height = `${viewport.height}px`;
+            
+            const canvas = document.createElement('canvas');
+            canvas.className = 'pdf-canvas';
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            pageContainer.appendChild(canvas);
+            
+            const renderContext = {
+                canvasContext: canvas.getContext('2d'),
+                viewport
+            };
+            
+            const renderTask = page.render(renderContext);
+            
+            const textLayerDiv = document.createElement('div');
+            textLayerDiv.className = 'text-layer';
+            pageContainer.appendChild(textLayerDiv);
+            
+            const textContent = await page.getTextContent();
+            pdfjsLib.renderTextLayer({
+                textContent,
+                container: textLayerDiv,
+                viewport,
+                textDivs: []
+            });
+            
+            await renderTask.promise;
+            
+            this.enableTextActionButtons();
+            
+            const zoomLevelEl = document.getElementById('zoom-level');
+            if (zoomLevelEl) zoomLevelEl.textContent = `${Math.round(this.pdfCurrentZoom * 100)}%`;
+            
+            this.pdfPageRendering = false;
+            
+            if (this.pdfPagePending !== null) {
+                const pendingPage = this.pdfPagePending;
+                this.pdfPagePending = null;
+                this.renderPdf(pendingPage);
+            }
+        
+        } catch (error) {
+            console.error('Error rendering PDF:', error);
+            pdfContainer.innerHTML = `
+                <div class="p-4 bg-red-100 text-red-700 rounded">
+                    <p>Error loading PDF: ${error.message}</p>
+                    <a href="${this.documentData.file_url}" target="_blank" class="text-indigo-600 hover:underline">
+                        <i class="fas fa-external-link-alt mr-1"></i> Open PDF in new tab
+                    </a>
+                </div>
+            `;
+        } finally {
+            if (loadingIndicator) loadingIndicator.classList.add('hidden');
+        }
+    }
+
+    enableTextActionButtons() {
+        const actionButtons = [
+            document.getElementById('explain-button'),
+            document.getElementById('discuss-button'),
+            document.getElementById('summarize-button'),
+            document.getElementById('clarify-button')
+        ];
+        
+        actionButtons.forEach(btn => {
+            if (btn) btn.disabled = false;
+        });
+    }
+
+    setupZoomControls() {
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', () => {
+                this.pdfCurrentZoom = Math.min(this.pdfCurrentZoom + 0.2, 3.0);
+                this.renderPdf(this.currentPageId);
+            });
+        }
+        
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', () => {
+                this.pdfCurrentZoom = Math.max(this.pdfCurrentZoom - 0.2, 0.5);
+                this.renderPdf(this.currentPageId);
+            });
+        }
     }
 }
