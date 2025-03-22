@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 import os
 import uuid
 from werkzeug.utils import secure_filename
-from app.utils.file_processor import process_file
+from app.utils.file_processor import process_file, process_pdf, process_image
 from app.utils.document_analyzer import generate_summary, get_answer
 import glob
 import json
@@ -21,21 +21,35 @@ def allowed_file(filename):
 def add_page():
     """Handles adding a new page to an existing document"""
     try:
+        print("⭐ /add-page endpoint called")
+        
+        # Check for file in request
         if 'file' not in request.files:
             print("ERROR: No file part in request")
-            return jsonify({'error': 'No file part'}), 400
+            return jsonify({'error': 'No file part', 'success': False}), 400
         
+        # Get document ID from form data and sanitize it
         file = request.files['file']
-        document_id = request.form.get('documentId')
+        document_id = request.form.get('documentId', '')
+        
+        # Sanitize document_id to remove any path characters
+        if '\\' in document_id or '/' in document_id:
+            print(f"WARNING: Document ID contains path separators: {document_id}")
+            # Extract just the filename portion
+            document_id = os.path.basename(document_id)
+            print(f"Sanitized document ID: {document_id}")
+        
+        print(f"⭐ Received request with document ID: {document_id}")
 
         if not document_id:
             print("ERROR: Missing document ID")
-            return jsonify({'error': 'Missing document ID'}), 400
+            return jsonify({'error': 'Missing document ID', 'success': False}), 400
 
         if file.filename == '':
             print("ERROR: No selected file")
-            return jsonify({'error': 'No selected file'}), 400
+            return jsonify({'error': 'No selected file', 'success': False}), 400
         
+        # Check if file type is allowed
         if file and allowed_file(file.filename):
             # Generate a unique filename for the new page
             original_filename = secure_filename(file.filename)
@@ -43,65 +57,143 @@ def add_page():
             unique_filename = f"{str(uuid.uuid4())}.{file_ext}"
 
             # Save the file in the upload directory
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
+            upload_folder = current_app.config['UPLOAD_FOLDER']
+            os.makedirs(upload_folder, exist_ok=True)  # Ensure upload folder exists
+            
+            file_path = os.path.join(upload_folder, unique_filename)
             print(f"Saving new page file to: {file_path}")
             file.save(file_path)
 
-            # Load existing document data
-            temp_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'studyflow')
-            # Ensure the directory exists
-            os.makedirs(temp_dir, exist_ok=True)
+            # Try to find the document data in different possible locations
+            document_file = None
+            document_data = None
             
-            document_file = os.path.join(temp_dir, f"{document_id}.json")
-
-            if not os.path.exists(document_file):
-                print(f"Document file not found at {document_file}, checking temp directory...")
-                # Try alternate location (temp directory)
-                temp_dir_alt = os.path.join(tempfile.gettempdir(), 'studyflow')
-                os.makedirs(temp_dir_alt, exist_ok=True)
-                document_file = os.path.join(temp_dir_alt, f"{document_id}.json")
+            # List of possible locations to check
+            locations = [
+                os.path.join(upload_folder, 'studyflow', f"{document_id}.json"),
+                os.path.join(tempfile.gettempdir(), 'studyflow', f"{document_id}.json")
+            ]
+            
+            for loc in locations:
+                directory = os.path.dirname(loc)
+                os.makedirs(directory, exist_ok=True)
                 
-                if not os.path.exists(document_file):
-                    print(f"ERROR: Document file not found at alternate location either!")
-                    return jsonify({'error': 'Document not found'}), 404
+                if os.path.exists(loc):
+                    document_file = loc
+                    print(f"Found document at: {document_file}")
+                    try:
+                        with open(document_file, 'r') as f:
+                            document_data = json.load(f)
+                        break
+                    except Exception as e:
+                        print(f"Error loading document from {loc}: {str(e)}")
+            
+            # If document not found, check if we should create a new one
+            if not document_data:
+                print("Document not found in any location - creating new document data")
+                
+                # For this example, create minimal document data when not found
+                document_data = {
+                    'file_id': document_id,
+                    'pages': []
+                }
+                
+                # Use the first location as the save location
+                document_file = locations[0]
 
-            print(f"Loading document from: {document_file}")
-            with open(document_file, 'r') as f:
-                document_data = json.load(f)
-
-            # Generate new page number
-            new_page_number = len(document_data['pages']) + 1
-
-            # Process file (extract text, generate summary, etc.)
-            # In a real app, you'd do proper text extraction and summary generation here
-            new_page = {
-                'page_number': new_page_number,
-                'text': f'Sample extracted text for new page {new_page_number} from {original_filename}...',
-                'summary': f'This is an AI-generated summary of page {new_page_number}.',
-                'notes': ''
+            # Process the uploaded file to extract text and page count
+            # Assume we have a function that processes various file types
+            
+            # Create temp file info for processing
+            new_file_info = {
+                'id': unique_filename.split('.')[0],
+                'original_name': original_filename,
+                'path': file_path,
+                'type': file_ext
             }
-            document_data['pages'].append(new_page)
-
+            
+            # Process file to extract text
+            if file_ext == 'pdf':
+                new_pages_data = process_pdf(file_path)
+            elif file_ext in ['jpg', 'jpeg', 'png']:
+                new_pages_data = process_image(file_path)
+            else:
+                new_pages_data = [{
+                    'page_number': len(document_data.get('pages', [])) + 1,
+                    'text': f'Content from {original_filename}',
+                    'summary': f'Uploaded file: {original_filename}',
+                    'notes': ''
+                }]
+                
+            # Calculate the starting page number for the new pages
+            start_page_num = len(document_data.get('pages', [])) + 1
+            
+            # Now, if both files are PDFs, try to merge them
+            try:
+                import PyPDF2
+                
+                # Find the original PDF file path
+                original_files = []
+                for filename in os.listdir(upload_folder):
+                    if filename.startswith(document_id) and filename.lower().endswith('.pdf'):
+                        original_files.append(os.path.join(upload_folder, filename))
+                
+                # If we found the original file and both are PDFs
+                if original_files and file_ext.lower() == 'pdf':
+                    original_pdf_path = original_files[0]
+                    merged_pdf_path = os.path.join(upload_folder, f"{document_id}.pdf")
+                    
+                    print(f"Attempting to merge PDFs: {original_pdf_path} and {file_path}")
+                    
+                    merger = PyPDF2.PdfMerger()
+                    merger.append(original_pdf_path)
+                    merger.append(file_path)
+                    merger.write(merged_pdf_path)
+                    merger.close()
+                    
+                    print(f"Successfully merged PDFs to: {merged_pdf_path}")
+                    
+                    # Optionally update the document data to point to the merged file
+                    # This depends on how your viewer loads files
+                    document_data['merged_pdf'] = True
+                    document_data['original_file'] = original_pdf_path
+                    document_data['merged_file'] = merged_pdf_path
+            except Exception as e:
+                print(f"Error merging PDFs: {str(e)}")
+                # If merge fails, we still have the individual files
+            
+            # Renumber the new pages and add them to the document
+            for i, page in enumerate(new_pages_data):
+                page['page_number'] = start_page_num + i
+                document_data['pages'].append(page)
+            
             # Save updated document data
             print(f"Saving updated document to: {document_file}")
+            directory = os.path.dirname(document_file)
+            os.makedirs(directory, exist_ok=True)
+            
             with open(document_file, 'w') as f:
                 json.dump(document_data, f)
 
-            print(f"Page {new_page_number} successfully added to document {document_id}")
+            print(f"Added {len(new_pages_data)} pages to document {document_id}")
             return jsonify({
-                'message': 'New page added successfully',
+                'message': f'New page(s) added successfully - {len(new_pages_data)} pages',
                 'success': True,
-                'document_id': document_id
+                'document_id': document_id,
+                'pages_added': len(new_pages_data)
             }), 200
 
         print("ERROR: Invalid file type")
-        return jsonify({'error': 'Invalid file type'}), 400
+        return jsonify({'error': 'Invalid file type', 'success': False}), 400
 
     except Exception as e:
         import traceback
         print(f"SERVER ERROR in add_page: {str(e)}")
-        print(traceback.format_exc())  # Print stack trace for debugging
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
+        print(traceback.format_exc())
+        return jsonify({
+            'error': f'Server error: {str(e)}',
+            'success': False
+        }), 500
 
 
 
@@ -223,13 +315,21 @@ def get_summaries(file_id):
     temp_dir = os.path.join(tempfile.gettempdir(), 'studyflow')
     file_path = os.path.join(temp_dir, f"{file_id}.json")
     
-    # Look for the original file
+    # Look for the original file or the merged file
     upload_folder = current_app.config['UPLOAD_FOLDER']
-    original_files = glob.glob(os.path.join(upload_folder, f"{file_id}.*"))
-    original_file_path = original_files[0] if original_files else None
+    
+    # Check for a merged PDF first
+    merged_pdf_path = os.path.join(upload_folder, f"{file_id}_merged.pdf")
+    if os.path.exists(merged_pdf_path):
+        original_file_path = merged_pdf_path
+        file_type = 'pdf'
+    else:
+        # Fall back to the original search 
+        original_files = glob.glob(os.path.join(upload_folder, f"{file_id}.*"))
+        original_file_path = original_files[0] if original_files else None
+        file_type = os.path.splitext(original_file_path)[1].lower()[1:] if original_file_path else "unknown"
     
     if original_file_path:
-        file_type = os.path.splitext(original_file_path)[1].lower()[1:]  # Get extension without dot
         # Make the path relative to static folder for serving
         relative_path = os.path.relpath(original_file_path, os.path.join(current_app.root_path, 'static'))
         file_url = f"/static/{relative_path}"
@@ -258,6 +358,10 @@ def get_summaries(file_id):
                 data['file_url'] = file_url
                 data['download_url'] = download_url
                 data['pdf_page_images'] = pdf_page_images
+                
+                # Add flag to indicate if this is a merged PDF
+                data['is_merged'] = os.path.exists(merged_pdf_path)
+                
                 return jsonify(data), 200
         except Exception as e:
             print(f"Error loading file data: {str(e)}")
@@ -268,6 +372,7 @@ def get_summaries(file_id):
         'file_url': file_url,
         'download_url': download_url,
         'pdf_page_images': pdf_page_images,
+        'is_merged': os.path.exists(merged_pdf_path),
         'pages': [
             {
                 'page_number': 1,
@@ -362,4 +467,12 @@ def debug_document(file_id):
             except Exception as e:
                 location['error'] = str(e)
     
-    return jsonify(response_data) 
+    return jsonify(response_data)
+
+@api.route('/debug/document/health-check', methods=['GET'])
+def health_check():
+    """Simple health check endpoint"""
+    return jsonify({
+        'status': 'ok',
+        'message': 'API is operational'
+    }), 200 

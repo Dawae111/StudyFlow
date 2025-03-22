@@ -14,6 +14,18 @@ export class AppController {
     }
     
     init() {
+        console.log("StudyFlow App initializing...");
+        
+        // Check server connection
+        this.checkServerConnection().then(isConnected => {
+            if (isConnected) {
+                console.log("✅ Server connection successful");
+            } else {
+                console.error("❌ Server connection failed - API requests may not work");
+                alert("Warning: Unable to connect to the server. Some features may not work correctly.");
+            }
+        });
+        
         // Any additional initialization can go here
         console.log("StudyFlow App initialized");
     }
@@ -33,6 +45,19 @@ export class AppController {
         // Update study tools with current page data
         if (currentPage) {
             this.studyTools.updateContent(currentPage);
+        }
+    }
+
+    async checkServerConnection() {
+        try {
+            const response = await fetch('/api/debug/document/health-check', { 
+                method: 'GET',
+                headers: { 'Cache-Control': 'no-cache' } 
+            });
+            return response.ok;
+        } catch (error) {
+            console.error("Failed to connect to server:", error);
+            return false;
         }
     }
 } 
