@@ -314,8 +314,17 @@ def analyze_file(file_id):
 
         temp_dir = os.path.join(tempfile.gettempdir(), 'studyflow')
         file_path = os.path.join(temp_dir, f"{file_id}.json")
+        
+        print(f"Looking for JSON file at: {file_path}")
+        print(f"File exists: {os.path.exists(file_path)}")
+        
+        # Also check upload folder
+        upload_folder = current_app.config['UPLOAD_FOLDER']
+        upload_json_path = os.path.join(upload_folder, 'studyflow', f"{file_id}.json")
+        print(f"Also checking upload folder: {upload_json_path}")
+        print(f"File exists in upload folder: {os.path.exists(upload_json_path)}")
 
-        if not os.path.exists(file_path):
+        if not os.path.exists(file_path) and not os.path.exists(upload_json_path):
             return jsonify({'error': 'File not found'}), 404
 
         with open(file_path, 'r') as f:
@@ -352,11 +361,18 @@ def get_summaries(file_id):
     # First try local storage (for newly uploaded files)
     temp_dir = os.path.join(tempfile.gettempdir(), 'studyflow')
     upload_folder = current_app.config['UPLOAD_FOLDER']
+    
+    print(f"Checking for JSON files in:")
+    print(f"Temp directory: {temp_dir}")
+    print(f"Upload folder: {upload_folder}")
 
     # Check for local files first (for newly uploaded files)
     merged_pdf_path = os.path.join(upload_folder, f"{file_id}_merged.pdf")
     original_files = glob.glob(os.path.join(upload_folder, f"{file_id}.*"))
     json_path = os.path.join(temp_dir, f"{file_id}.json")
+    
+    print(f"Looking for JSON file at: {json_path}")
+    print(f"File exists: {os.path.exists(json_path)}")
 
     # If we have local files, use the existing flow
     if os.path.exists(merged_pdf_path) or original_files or os.path.exists(json_path):
@@ -440,6 +456,23 @@ def get_summaries(file_id):
                 'created': matching_file.get('created'),
                 'total_pages': len(pages_data) if pages_data else 0
             }
+
+            # Save the processed data to a JSON file
+            json_path = os.path.join(temp_dir, f"{file_id}.json")
+            os.makedirs(os.path.dirname(json_path), exist_ok=True)
+            with open(json_path, 'w') as f:
+                json.dump(document_data, f)
+
+            # For PDFs, also save the file locally for viewing
+            if file_type == 'pdf':
+                pdf_path = os.path.join(upload_folder, f"{file_id}.pdf")
+                with open(pdf_path, 'wb') as f:
+                    f.write(file_content)
+                
+                # Update the URLs to point to the local file
+                relative_path = os.path.relpath(pdf_path, os.path.join(current_app.root_path, 'static'))
+                document_data['file_url'] = f"/static/{relative_path}"
+                document_data['download_url'] = f"/static/{relative_path}"
 
             return jsonify(document_data), 200
 
