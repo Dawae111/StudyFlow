@@ -1,0 +1,9 @@
+
+conda create --name studyflow python=3.11
+
+conda activate studyflow
+
+conda deactivate
+
+conda install pip
+pip install -r requirements.txt
