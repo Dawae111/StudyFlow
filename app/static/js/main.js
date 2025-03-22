@@ -136,6 +136,37 @@ document.addEventListener('DOMContentLoaded', function () {
         // Clear previous content
         pageThumbnails.innerHTML = '';
 
+        // Add page navigation controls if there are multiple pages
+        if (documentData.pages.length > 1) {
+            const navControls = document.createElement('div');
+            navControls.className = 'flex justify-between items-center mb-4 pb-2 border-b';
+            navControls.innerHTML = `
+                <div class="text-gray-700">Total Pages: ${documentData.pages.length}</div>
+                <div class="flex space-x-2">
+                    <button id="prev-page" class="px-3 py-1 bg-indigo-600 text-white rounded-md disabled:bg-gray-400" ${currentPageId === 1 ? 'disabled' : ''}>Previous</button>
+                    <button id="next-page" class="px-3 py-1 bg-indigo-600 text-white rounded-md disabled:bg-gray-400" ${currentPageId === documentData.pages.length ? 'disabled' : ''}>Next</button>
+                </div>
+            `;
+            pageThumbnails.appendChild(navControls);
+
+            // Add event listeners for navigation
+            navControls.querySelector('#prev-page').addEventListener('click', () => {
+                if (currentPageId > 1) {
+                    currentPageId--;
+                    renderCurrentPage();
+                    updateNavigationControls();
+                }
+            });
+
+            navControls.querySelector('#next-page').addEventListener('click', () => {
+                if (currentPageId < documentData.pages.length) {
+                    currentPageId++;
+                    renderCurrentPage();
+                    updateNavigationControls();
+                }
+            });
+        }
+
         // Add page thumbnails
         documentData.pages.forEach(page => {
             const pageElement = document.createElement('div');
@@ -162,6 +193,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     el.classList.remove('bg-indigo-100', 'border-indigo-300');
                 });
                 pageElement.classList.add('bg-indigo-100', 'border-indigo-300');
+
+                // Update navigation controls
+                updateNavigationControls();
             });
 
             pageThumbnails.appendChild(pageElement);
@@ -171,15 +205,56 @@ document.addEventListener('DOMContentLoaded', function () {
         renderCurrentPage();
     }
 
+    function updateNavigationControls() {
+        const prevButton = document.getElementById('prev-page');
+        const nextButton = document.getElementById('next-page');
+
+        if (prevButton) {
+            prevButton.disabled = currentPageId === 1;
+        }
+
+        if (nextButton) {
+            nextButton.disabled = currentPageId === documentData.pages.length;
+        }
+    }
+
     function renderCurrentPage() {
         const page = documentData.pages.find(p => p.page_number === currentPageId);
 
         if (!page) return;
 
         // Render page content
-        currentPageContent.innerHTML = `
-            <div class="text-sm whitespace-pre-wrap">${page.text}</div>
-        `;
+        if (documentData.file_type && documentData.file_url) {
+            if (['jpg', 'jpeg', 'png'].includes(documentData.file_type.toLowerCase())) {
+                // For images, show the image above the extracted text
+                currentPageContent.innerHTML = `
+                    <div class="mb-4">
+                        <img src="${documentData.file_url}" class="max-w-full h-auto rounded" alt="Uploaded image">
+                    </div>
+                    <div class="text-sm whitespace-pre-wrap">${page.text}</div>
+                `;
+            } else if (documentData.file_type.toLowerCase() === 'pdf') {
+                // For PDFs, potentially we could show a PDF viewer
+                // but for now just show the extracted text
+                currentPageContent.innerHTML = `
+                    <div class="mb-4">
+                        <p class="text-gray-500 italic">PDF page ${page.page_number}</p>
+                        <a href="${documentData.file_url}" target="_blank" class="text-indigo-600 hover:underline">View original PDF</a>
+                    </div>
+                    <div class="text-sm whitespace-pre-wrap">${page.text}</div>
+                `;
+            } else {
+                // Fallback for other file types
+                currentPageContent.innerHTML = `
+                    <div class="text-sm whitespace-pre-wrap">${page.text}</div>
+                `;
+            }
+        } else {
+            // No file info, just show text
+            currentPageContent.innerHTML = `
+                <div class="text-sm whitespace-pre-wrap">${page.text}</div>
+            `;
+        }
 
         // Render summary
         summaryContent.innerHTML = `

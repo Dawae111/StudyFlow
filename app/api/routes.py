@@ -4,6 +4,7 @@ import uuid
 from werkzeug.utils import secure_filename
 from app.utils.file_processor import process_file
 from app.utils.document_analyzer import generate_summary, get_answer
+import glob
 
 api = Blueprint('api', __name__)
 
@@ -87,15 +88,35 @@ def get_summaries(file_id):
     temp_dir = os.path.join(tempfile.gettempdir(), 'studyflow')
     file_path = os.path.join(temp_dir, f"{file_id}.json")
     
+    # Look for the original file
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    original_files = glob.glob(os.path.join(upload_folder, f"{file_id}.*"))
+    original_file_path = original_files[0] if original_files else None
+    
+    if original_file_path:
+        file_type = os.path.splitext(original_file_path)[1].lower()[1:]  # Get extension without dot
+        # Make the path relative to static folder for serving
+        relative_path = os.path.relpath(original_file_path, os.path.join(current_app.root_path, 'static'))
+        file_url = f"/static/{relative_path}"
+    else:
+        file_type = "unknown"
+        file_url = None
+    
     if os.path.exists(file_path):
         try:
             with open(file_path, 'r') as f:
-                return jsonify(json.load(f)), 200
+                data = json.load(f)
+                # Add file information
+                data['file_type'] = file_type
+                data['file_url'] = file_url
+                return jsonify(data), 200
         except Exception as e:
             print(f"Error loading file data: {str(e)}")
     
     # If we couldn't load the data, return dummy data
     return jsonify({
+        'file_type': file_type,
+        'file_url': file_url,
         'pages': [
             {
                 'page_number': 1,
