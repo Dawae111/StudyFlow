@@ -40,7 +40,7 @@ export class DocumentViewer {
             -->
         `;
         thumbnailsContainer.appendChild(controlsContainer);
-        
+
         controlsContainer.querySelector('#add-page-btn').addEventListener('click', () => this.addNewPage());
         // Comment out the event listener for remove button
         // controlsContainer.querySelector('#remove-page-btn').addEventListener('click', () => this.removeCurrentPage());
@@ -62,7 +62,7 @@ export class DocumentViewer {
 
         // Calculate preview text
         const previewText = page.text ? page.text.substring(0, 10) + '...' : 'No text';
-        
+
         // Create a more informative thumbnail
         pageElement.innerHTML = `
             <div class="flex items-center justify-between">
@@ -184,18 +184,18 @@ export class DocumentViewer {
     getPDFContentHTML(page) {
         const isMergedPDF = this.documentData.is_merged || false;
         const pdfLabel = isMergedPDF ? 'Merged PDF' : 'PDF';
-        
+
         return `
-            <div class="relative mb-1 overflow-auto h-screen">
+            <div class="relative mb-1 overflow-auto h-full">
                 <div class="absolute top-1 left-1 right-1 flex justify-between items-center z-10 bg-white bg-opacity-80 rounded p-1 text-xs">
                     <p class="text-gray-500 italic">${pdfLabel} - ${this.documentData.pages.length} pages</p>
                     <a href="${this.documentData.download_url}" download class="text-indigo-600 hover:underline flex items-center">
                         <i class="fas fa-download mr-1"></i> Download
                     </a>
                 </div>
-                <div class="pdf-container h-screen">
+                <div class="pdf-container h-full">
                     <object data="${this.documentData.file_url}" 
-                        type="application/pdf" width="100%" height="100%" class="border rounded h-screen">
+                        type="application/pdf" width="100%" height="100%" class="border rounded h-full">
                         <div class="p-4 bg-gray-100 rounded">
                             <p>It seems your browser doesn't support embedded PDFs.</p>
                             <a href="${this.documentData.file_url}" target="_blank" class="text-indigo-600 hover:underline">
@@ -237,7 +237,7 @@ export class DocumentViewer {
                 toggleBtn.addEventListener('click', () => {
                     const isHidden = textContainer.classList.contains('hidden');
                     textContainer.classList.toggle('hidden');
-                    toggleBtn.innerHTML = isHidden ? 
+                    toggleBtn.innerHTML = isHidden ?
                         '<i class="fas fa-file-alt mr-1"></i> Hide Text' :
                         '<i class="fas fa-file-alt mr-1"></i> Show Text';
                 });
@@ -256,7 +256,7 @@ export class DocumentViewer {
     getDocumentId() {
         // If found an ID, sanitize it to remove path components and invalid URL characters
         let id = null;
-        
+
         // Try each potential ID source
         if (this.documentData.document_id) {
             id = this.documentData.document_id;
@@ -272,7 +272,7 @@ export class DocumentViewer {
                 id = fileName.split('.')[0];
             }
         }
-        
+
         // If we found an ID, sanitize it
         if (id) {
             // Remove any path components, keeping only the filename part
@@ -283,10 +283,10 @@ export class DocumentViewer {
                 id = parts[parts.length - 1];
                 console.log("Sanitized ID:", id);
             }
-            
+
             return id;
         }
-        
+
         console.error("Could not find document ID in:", this.documentData);
         return null;
     }
@@ -297,7 +297,7 @@ export class DocumentViewer {
         fileInput.accept = 'application/pdf,image/jpeg,image/png,image/jpg';
         fileInput.style.display = 'none';
         document.body.appendChild(fileInput);
-        
+
         fileInput.addEventListener('change', async (e) => {
             if (fileInput.files.length) {
                 const file = fileInput.files[0];
@@ -310,7 +310,7 @@ export class DocumentViewer {
                     // Get the document ID
                     const docId = this.getDocumentId();
                     console.log("Using document ID for add page:", docId);
-                    
+
                     if (!docId) {
                         console.error("Document data:", this.documentData);
                         throw new Error('Missing document ID in current document data. Check console for details.');
@@ -345,13 +345,13 @@ export class DocumentViewer {
                     // Fetch the updated document data
                     console.log("Fetching updated document data for ID:", docId);
                     const newDocData = await api.fetchDocumentData(docId);
-                    
+
                     console.log("Received updated document data:", newDocData);
-                    
+
                     if (!newDocData || !newDocData.pages) {
                         throw new Error('Retrieved invalid document data after page addition. Check server logs.');
                     }
-                    
+
                     this.documentData = newDocData;
 
                     // Go to the newly added page
@@ -371,44 +371,44 @@ export class DocumentViewer {
                 }
             }
         });
-    
+
         fileInput.click();
     }
-    
+
     removeCurrentPage() {
         if (!this.documentData || this.documentData.pages.length <= 1) {
             alert('Cannot remove the only page in the document.');
             return;
         }
-        
+
         if (!confirm(`Are you sure you want to remove page ${this.currentPageId}?`)) {
             return;
         }
-        
+
         const docId = this.getDocumentId();
         if (!docId) {
             alert('Cannot remove page: Missing document ID');
             return;
         }
-        
+
         console.log("Removing page from document ID:", docId);
-        
+
         api.removePage(docId, this.currentPageId)
             .then(result => {
                 if (result.success) {
                     this.documentData.pages = this.documentData.pages.filter(p => p.page_number !== this.currentPageId);
-                    
+
                     this.documentData.pages.forEach((page, idx) => {
                         page.page_number = idx + 1;
                     });
-                    
+
                     if (this.currentPageId > this.documentData.pages.length) {
                         this.currentPageId = this.documentData.pages.length;
                     }
-                    
+
                     this.renderThumbnails();
                     this.renderCurrentPage();
-                    
+
                     alert('Page removed successfully!');
                 } else {
                     throw new Error(result.message || 'Failed to remove page');
