@@ -7,6 +7,7 @@
     <title>StudyFlow - Enhanced Learning</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/custom.css">
     <style>
         .drag-area {
             border: 2px dashed #6c63ff;
@@ -116,11 +117,15 @@
 
                 <!-- Q&A Input (only shown when Q&A tab is active) -->
                 <div id="qa-input-container" class="hidden mt-2 border-t pt-2 bg-white">
-                    <div class="flex items-center border rounded-lg overflow-hidden">
-                        <input id="question-input" type="text" class="flex-grow px-4 py-2 focus:outline-none"
-                            placeholder="Ask a question about this content...">
-                        <button id="ask-button"
-                            class="bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700 transition">Ask</button>
+                    <!-- Model selector will be inserted here by the qaHandler.js -->
+                    <div class="flex flex-col mt-2">
+                        <div class="flex items-center overflow-hidden w-full">
+                            <input id="question-input" type="text"
+                                class="flex-grow px-4 py-1 focus:outline-none w-full min-w-0"
+                                placeholder="Ask a question about this content...">
+                            <button id="ask-button"
+                                class="bg-indigo-600 text-white px-4 py-1 hover:bg-indigo-700 transition">Ask</button>
+                        </div>
                     </div>
                 </div>
             </div>

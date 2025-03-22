@@ -10,6 +10,11 @@ export class DocumentViewer {
 
     setupEventListeners() {
         document.addEventListener('keydown', (e) => this.handleKeyboardNavigation(e));
+
+        // Listen for summary updates from background processing
+        document.addEventListener('summariesUpdated', (e) => {
+            this.handleSummariesUpdated(e.detail.documentData);
+        });
     }
 
     renderDocument(documentData) {
@@ -686,5 +691,16 @@ export class DocumentViewer {
         } catch (error) {
             console.error('Error rendering PDF page:', error);
         }
+    }
+
+    // New method to handle updated summaries
+    handleSummariesUpdated(documentData) {
+        if (!documentData || !documentData.pages) {
+            console.warn('Received invalid document data for summary update');
+            return;
+        }
+
+        // Store the updated document data
+        this.documentData = documentData;
     }
 }

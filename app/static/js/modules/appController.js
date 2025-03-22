@@ -17,6 +17,11 @@ export class AppController {
         this.studyTools = new StudyTools(elements);
         this.qaHandler = new QAHandler(elements, this);
         this.fileUploadHandler = new FileUploadHandler(elements, this.handleFileProcessed.bind(this));
+
+        // Add listener for summaries updated event
+        document.addEventListener('summariesUpdated', (e) => {
+            this.handleSummariesUpdated(e.detail.documentData);
+        });
     }
 
     init() {
@@ -84,6 +89,23 @@ export class AppController {
         } catch (error) {
             console.error("Failed to connect to server:", error);
             return false;
+        }
+    }
+
+    // New method to handle updated summaries
+    handleSummariesUpdated(documentData) {
+        if (!documentData || !documentData.pages || !this.currentFileId) {
+            return;
+        }
+
+        console.log('AppController: Handling updated summaries');
+
+        // Update study tools with current page data
+        const currentPageId = this.documentViewer.currentPageId;
+        const currentPage = documentData.pages.find(p => p.page_number === currentPageId);
+
+        if (currentPage) {
+            this.studyTools.updateContent(currentPage);
         }
     }
 } 

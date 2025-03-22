@@ -28,6 +28,30 @@ document.addEventListener('DOMContentLoaded', function () {
         saveNotesButton: document.getElementById('save-notes')
     };
 
+    // Define global utility functions
+    window.showLoading = function (message) {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingMessage = document.getElementById('loading-message');
+        if (loadingOverlay && loadingMessage) {
+            loadingMessage.textContent = message || 'Loading...';
+            loadingOverlay.classList.remove('hidden');
+        }
+    };
+
+    window.updateLoadingMessage = function (message) {
+        const loadingMessage = document.getElementById('loading-message');
+        if (loadingMessage) {
+            loadingMessage.textContent = message;
+        }
+    };
+
+    window.hideLoading = function () {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.classList.add('hidden');
+        }
+    };
+
     // Initialize the app controller
     const app = new AppController(elements);
     app.init();

@@ -238,54 +238,94 @@ export class QAHandler {
             return;
         }
 
-        // Create a model selector dropdown
+        // Create a more compact model selector dropdown like OpenAI's UI
         const selectorContainer = document.createElement('div');
-        selectorContainer.className = 'model-selector-container flex items-center mb-2 text-xs';
-        selectorContainer.innerHTML = `
-            <label for="model-selector" class="mr-2 text-gray-700">Model:</label>
-            <select id="model-selector" class="p-1 border rounded text-xs">
+        selectorContainer.className = 'model-selector-container mb-2 relative';
+
+        // Create a dropdown button that shows the current model
+        const buttonHTML = `
+            <button id="model-dropdown-btn" class="flex items-center justify-between w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold px-3 py-2 rounded text-sm">
+                <span id="current-model-name">${this.selectedModel}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+            <div id="model-dropdown-content" class="hidden absolute bottom-full left-0 right-0 z-50 mb-2 bg-white shadow-lg rounded-md border border-gray-200 py-1 max-h-48 overflow-y-auto">
                 ${Object.keys(this.models).map(model => `
-                    <option value="${model}" ${model === this.selectedModel ? 'selected' : ''}>
-                        ${model}
-                    </option>
+                    <div class="model-option cursor-pointer p-2 hover:bg-gray-100 ${model === this.selectedModel ? 'selected' : ''}" data-model="${model}">
+                        <div class="font-medium">${model}</div>
+                        <div class="text-xs text-gray-500">${this.models[model].description}</div>
+                    </div>
                 `).join('')}
-            </select>
-            <div class="ml-2 text-gray-500 model-info"></div>
+            </div>
         `;
+
+        selectorContainer.innerHTML = buttonHTML;
 
         // Insert before the question input
         const qaContainer = this.elements.questionInput.parentElement;
         qaContainer.insertBefore(selectorContainer, this.elements.questionInput);
 
-        // Add event listener for model change
-        const selector = document.getElementById('model-selector');
-        const modelInfo = selectorContainer.querySelector('.model-info');
+        // Add event listeners for dropdown functionality
+        const dropdownBtn = document.getElementById('model-dropdown-btn');
+        const dropdownContent = document.getElementById('model-dropdown-content');
 
-        // Update model info initially
-        this.updateModelInfo(modelInfo, this.selectedModel);
+        // Toggle dropdown when button is clicked
+        dropdownBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            dropdownBtn.classList.toggle('active');
+            dropdownContent.classList.toggle('hidden');
 
-        // Update when selection changes
-        selector.addEventListener('change', () => {
-            const previousModel = this.selectedModel;
-            this.selectedModel = selector.value;
-            console.log(`Model changed from ${previousModel} to ${this.selectedModel}`);
-            this.updateModelInfo(modelInfo, this.selectedModel);
-
-            // Save user model preference to localStorage
-            try {
-                localStorage.setItem('studyflow_preferred_model', this.selectedModel);
-                console.log(`Saved user model preference: ${this.selectedModel}`);
-            } catch (e) {
-                console.warn('Could not save model preference:', e);
+            // For animation, add the show class after removing hidden
+            if (!dropdownContent.classList.contains('hidden')) {
+                // Small delay for the animation to work properly
+                setTimeout(() => {
+                    dropdownContent.classList.add('show');
+                }, 10);
+            } else {
+                dropdownContent.classList.remove('show');
             }
         });
-    }
 
-    updateModelInfo(infoElement, modelName) {
-        if (this.models && this.models[modelName]) {
-            const model = this.models[modelName];
-            infoElement.textContent = `${model.description} - ${model.cost_per_1k}/1K tokens`;
-        }
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!selectorContainer.contains(e.target)) {
+                dropdownContent.classList.add('hidden');
+            }
+        });
+
+        // Add event listeners to model options
+        document.querySelectorAll('.model-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const previousModel = this.selectedModel;
+                this.selectedModel = option.dataset.model;
+
+                // Update the button text
+                document.getElementById('current-model-name').textContent = this.selectedModel;
+
+                // Update selected state in dropdown
+                document.querySelectorAll('.model-option').forEach(opt => {
+                    if (opt.dataset.model === this.selectedModel) {
+                        opt.classList.add('selected');
+                    } else {
+                        opt.classList.remove('selected');
+                    }
+                });
+
+                // Hide dropdown
+                dropdownContent.classList.add('hidden');
+
+                // Log model change and save preference
+                console.log(`Model changed from ${previousModel} to ${this.selectedModel}`);
+
+                try {
+                    localStorage.setItem('studyflow_preferred_model', this.selectedModel);
+                    console.log(`Saved user model preference: ${this.selectedModel}`);
+                } catch (e) {
+                    console.warn('Could not save model preference:', e);
+                }
+            });
+        });
     }
 
     askQuestion() {

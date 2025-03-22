@@ -127,6 +127,11 @@ export class StudyTools {
         document.addEventListener('pageChanged', (e) => {
             this.updateContent(e.detail.page);
         });
+
+        // Listen for summary updates from background processing
+        document.addEventListener('summariesUpdated', (e) => {
+            this.handleSummariesUpdated(e.detail.documentData);
+        });
     }
 
     setFileId(fileId) {
@@ -165,10 +170,14 @@ export class StudyTools {
         tabs[tab].classList.remove('bg-gray-200', 'text-gray-700');
         tabs[tab].classList.add('bg-indigo-600', 'text-white');
 
-        // Show/hide Q&A input based on active tab
+        // Show/hide QA input container based on active tab
         const qaInputContainer = document.getElementById('qa-input-container');
         if (qaInputContainer) {
-            qaInputContainer.classList.toggle('hidden', tab !== 'qa');
+            if (tab === 'qa') {
+                qaInputContainer.classList.remove('hidden');
+            } else {
+                qaInputContainer.classList.add('hidden');
+            }
         }
     }
 
@@ -176,20 +185,84 @@ export class StudyTools {
         // Find if there's already a summary container
         let summaryTextContainer = this.elements.summaryContent.querySelector('.summary-text');
 
-        // If model selector exists, update just the text
+        // Check if summary is empty or not yet generated
+        const needsGeneration = !summary || summary.trim() === '';
+
         if (summaryTextContainer) {
-            summaryTextContainer.innerHTML = `
+            if (needsGeneration) {
+                summaryTextContainer.innerHTML = `
+                <h4 class="font-semibold mb-2">Summary</h4>
+                <p class="text-gray-500">Generating summary... This may take a moment.</p>
+                `;
+                // Trigger summary generation
+                this.triggerSummaryGeneration();
+            } else {
+                summaryTextContainer.innerHTML = `
                 <h4 class="font-semibold mb-2">Summary</h4>
                 <p>${summary}</p>
-            `;
+                `;
+            }
         } else {
-            // Otherwise, create the whole container
-            this.elements.summaryContent.innerHTML = `
+            if (needsGeneration) {
+                this.elements.summaryContent.innerHTML = `
                 <div class="summary-text p-4 bg-indigo-50 rounded-lg">
-                    <h4 class="font-semibold mb-2">Summary</h4>
-                    <p>${summary}</p>
+                <h4 class="font-semibold mb-2">Summary</h4>
+                <p class="text-gray-500">Generating summary... This may take a moment.</p>
                 </div>
-            `;
+                `;
+                // Trigger summary generation
+                this.triggerSummaryGeneration();
+            } else {
+                this.elements.summaryContent.innerHTML = `
+                <div class="summary-text p-4 bg-indigo-50 rounded-lg">
+                <h4 class="font-semibold mb-2">Summary</h4>
+                <p>${summary}</p>
+                </div>
+                `;
+            }
+        }
+    }
+
+    // Helper method to trigger summary generation
+    async triggerSummaryGeneration() {
+        if (!this.currentFileId) {
+            console.warn('Cannot generate summary: No file ID available');
+            return;
+        }
+
+        try {
+            console.log('Triggering summary generation for file:', this.currentFileId);
+
+            // Call API to generate the summary
+            await api.analyzeDocument(this.currentFileId, this.selectedSummaryModel);
+
+            // Reload the document data after generation
+            const docData = await api.fetchDocumentData(this.currentFileId);
+
+            // Find the current page and update
+            const currentPage = docData.pages.find(p => p.page_number === this.currentPageId);
+            if (currentPage) {
+                this.updateContent(currentPage);
+            }
+        } catch (error) {
+            console.error('Error generating summary:', error);
+            // Update the UI to show the error
+            const summaryTextContainer = this.elements.summaryContent.querySelector('.summary-text');
+            if (summaryTextContainer) {
+                summaryTextContainer.innerHTML = `
+                <h4 class="font-semibold mb-2">Summary</h4>
+                <p class="text-red-500">Failed to generate summary. Please try again.</p>
+                <button id="retry-summary" class="mt-2 px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700">
+                    Retry
+                </button>
+                `;
+
+                // Add retry button handler
+                const retryButton = summaryTextContainer.querySelector('#retry-summary');
+                if (retryButton) {
+                    retryButton.addEventListener('click', () => this.triggerSummaryGeneration());
+                }
+            }
         }
     }
 
@@ -288,5 +361,24 @@ export class StudyTools {
             saveBtn.textContent = originalText;
             saveBtn.classList.remove('bg-green-600');
         }, 2000);
+    }
+
+    // New method to handle updated summaries
+    handleSummariesUpdated(documentData) {
+        if (!documentData || !documentData.pages) {
+            console.warn('Received invalid document data for summary update');
+            return;
+        }
+
+        console.log('Received updated summaries for document');
+
+        // Update current page content if we have an active page
+        if (this.currentPageId) {
+            const currentPage = documentData.pages.find(p => p.page_number === this.currentPageId);
+            if (currentPage) {
+                console.log(`Updating content for current page ${this.currentPageId}`);
+                this.updateContent(currentPage);
+            }
+        }
     }
 }
