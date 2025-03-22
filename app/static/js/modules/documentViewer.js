@@ -195,7 +195,7 @@ export class DocumentViewer {
         const pdfUrl = `${this.documentData.file_url.split('#')[0]}#page=${page.page_number}`;
 
         return `
-            <div class="relative mb-1 overflow-auto h-full">
+            <div class="relative mb-1 h-full">
                 <div class="absolute top-1 left-1 right-1 flex justify-between items-center z-10 bg-white bg-opacity-80 rounded p-1 text-xs">
                     <p class="text-gray-500 italic">${pdfLabel} - ${this.documentData.pages.length} pages</p>
                     <a href="${this.documentData.download_url}" download class="text-indigo-600 hover:underline flex items-center">
@@ -213,9 +213,9 @@ export class DocumentViewer {
                     </button>
                 </div>
                 
-                <div class="pdf-container h-screen">
+                <div class="pdf-container h-full">
                     <object id="pdf-viewer-object" data="${pdfUrl}" 
-                        type="application/pdf" width="100%" height="100%" class="border rounded h-screen">
+                        type="application/pdf" width="100%" height="100%" class="border rounded h-full">
                         <div class="p-4 bg-gray-100 rounded">
                             <p>It seems your browser doesn't support embedded PDFs.</p>
                             <a href="${pdfUrl}" target="_blank" class="text-indigo-600 hover:underline">
