@@ -164,6 +164,12 @@ export class StudyTools {
         contents[tab].classList.remove('hidden');
         tabs[tab].classList.remove('bg-gray-200', 'text-gray-700');
         tabs[tab].classList.add('bg-indigo-600', 'text-white');
+
+        // Show/hide Q&A input based on active tab
+        const qaInputContainer = document.getElementById('qa-input-container');
+        if (qaInputContainer) {
+            qaInputContainer.classList.toggle('hidden', tab !== 'qa');
+        }
     }
 
     updateSummary(summary) {
@@ -198,11 +204,16 @@ export class StudyTools {
         const questionEl = this.createQuestionElement(question);
         this.elements.qaHistory.appendChild(questionEl);
         this.elements.questionInput.value = '';
-        this.elements.qaHistory.scrollTop = this.elements.qaHistory.scrollHeight;
+
+        // Ensure the new question is visible by scrolling to it
+        this.scrollToBottom();
 
         try {
             const data = await api.askQuestion(question, this.currentFileId, this.currentPageId);
             this.updateAnswer(questionEl, data);
+
+            // Scroll to show the answer after it's loaded
+            this.scrollToBottom();
         } catch (error) {
             console.error('Error:', error);
             this.showAnswerError(questionEl);
@@ -211,12 +222,12 @@ export class StudyTools {
 
     createQuestionElement(question) {
         const questionEl = document.createElement('div');
-        questionEl.className = 'question-item mb-2';
+        questionEl.className = 'question-item bg-white rounded-lg shadow-sm mb-4';
         questionEl.innerHTML = `
-            <div class="question p-2 bg-indigo-100 rounded-lg">
+            <div class="question p-3 bg-indigo-50 rounded-t-lg border-b">
                 <span class="font-semibold">Q:</span> ${question}
             </div>
-            <div class="answer p-2 mt-1 bg-gray-100 rounded-lg">
+            <div class="answer p-3 bg-white rounded-b-lg">
                 <span class="font-semibold">A:</span> <span class="loading-dots">...</span>
             </div>
         `;
@@ -229,12 +240,22 @@ export class StudyTools {
 
         if (data.references?.length) {
             const refsEl = document.createElement('div');
-            refsEl.className = 'references mt-1 text-xs text-gray-500';
+            refsEl.className = 'references mt-2 text-xs text-gray-500';
             refsEl.innerHTML = `
                 <span class="font-semibold">References:</span> ${data.references.join(', ')}
             `;
             answerEl.appendChild(refsEl);
         }
+
+        // Ensure the answer is visible
+        this.scrollToBottom();
+    }
+
+    scrollToBottom() {
+        requestAnimationFrame(() => {
+            const qaHistory = this.elements.qaHistory;
+            qaHistory.scrollTop = qaHistory.scrollHeight;
+        });
     }
 
     showAnswerError(questionEl) {
