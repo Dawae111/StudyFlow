@@ -40,7 +40,7 @@ export class DocumentViewer {
             -->
         `;
         thumbnailsContainer.appendChild(controlsContainer);
-        
+
         controlsContainer.querySelector('#add-page-btn').addEventListener('click', () => this.addNewPage());
         // Comment out the event listener for remove button
         // controlsContainer.querySelector('#remove-page-btn').addEventListener('click', () => this.removeCurrentPage());
@@ -62,7 +62,7 @@ export class DocumentViewer {
 
         // Calculate preview text
         const previewText = page.text ? page.text.substring(0, 10) + '...' : 'No text';
-        
+
         // Create a more informative thumbnail
         pageElement.innerHTML = `
             <div class="flex items-center justify-between">
@@ -128,7 +128,7 @@ export class DocumentViewer {
     updateActiveThumbnail() {
         document.querySelectorAll('.page-thumbnail').forEach(el => {
             el.classList.remove('bg-indigo-100', 'border-indigo-300');
-            if (parseInt(el.dataset.pageId) === this.currentPageId) {
+            if (String(el.dataset.pageId) === String(this.currentPageId)) {
                 el.classList.add('bg-indigo-100', 'border-indigo-300');
                 el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
@@ -136,7 +136,7 @@ export class DocumentViewer {
     }
 
     getCurrentPage() {
-        return this.documentData.pages.find(p => p.page_number === this.currentPageId);
+        return this.documentData.pages.find(p => String(p.page_number) === String(this.currentPageId));
     }
 
     renderCurrentPage() {
@@ -145,6 +145,12 @@ export class DocumentViewer {
 
         this.elements.currentPageContent.innerHTML = this.getPageContentHTML(page);
         this.setupToggleTextButton();
+
+        // Notify other components about the page change
+        this.updateRightPanel();
+
+        console.log(`DocumentViewer rendered page ${this.currentPageId}`);
+
         return page;
     }
 
@@ -184,15 +190,28 @@ export class DocumentViewer {
     getPDFContentHTML(page) {
         const isMergedPDF = this.documentData.is_merged || false;
         const pdfLabel = isMergedPDF ? 'Merged PDF' : 'PDF';
-        
+        const totalPages = this.documentData.pages.length;
+        const currentPage = page.page_number;
+
         return `
             <div class="relative mb-1 overflow-auto h-screen">
-                <div class="absolute top-1 left-1 right-1 flex justify-between items-center z-10 bg-white bg-opacity-80 rounded p-1 text-xs">
-                    <p class="text-gray-500 italic">${pdfLabel} - ${this.documentData.pages.length} pages</p>
+                <div class="absolute top-1 left-1 right-1 flex justify-between items-center z-20 bg-white bg-opacity-95 shadow-sm rounded p-2 text-xs">
+                    <p class="text-gray-700 font-medium">${pdfLabel} - ${totalPages} pages</p>
                     <a href="${this.documentData.download_url}" download class="text-indigo-600 hover:underline flex items-center">
                         <i class="fas fa-download mr-1"></i> Download
                     </a>
                 </div>
+                
+                <!-- Pagination Controls - Center of screen -->
+                <div class="absolute top-1/2 left-0 right-0 flex justify-between items-center z-20 px-2 pointer-events-none">
+                    <button id="prev-page-btn-big" class="px-3 py-3 bg-gray-800 bg-opacity-50 text-white rounded-full hover:bg-opacity-70 pointer-events-auto ${currentPage === 1 ? 'opacity-25 cursor-not-allowed' : ''}">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button id="next-page-btn-big" class="px-3 py-3 bg-gray-800 bg-opacity-50 text-white rounded-full hover:bg-opacity-70 pointer-events-auto ${currentPage === totalPages ? 'opacity-25 cursor-not-allowed' : ''}">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                
                 <div class="pdf-container h-screen">
                     <object data="${this.documentData.file_url}" 
                         type="application/pdf" width="100%" height="100%" class="border rounded h-screen">
@@ -204,9 +223,26 @@ export class DocumentViewer {
                         </div>
                     </object>
                 </div>
-                <div class="absolute bottom-1 left-1 right-1 flex justify-between items-center z-10 bg-white bg-opacity-80 rounded p-1 text-xs">
-                    <span class="text-gray-500">Page ${page.page_number} of ${this.documentData.pages.length}</span>
-                    <button id="toggle-extracted-text" class="px-2 py-0.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                
+                <div class="absolute bottom-1 left-1 right-1 flex justify-between items-center z-20 bg-white bg-opacity-95 shadow-sm rounded p-2 text-xs">
+                    <div class="flex items-center">
+                        <button id="prev-page-btn" class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 mr-1 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span class="text-gray-700 mx-1">Page</span>
+                        <select id="page-selector" class="bg-white border rounded px-2 py-1 text-xs">
+                            ${Array.from({ length: totalPages }, (_, i) =>
+            `<option value="${i + 1}" ${i + 1 === currentPage ? 'selected' : ''}>
+                                    ${i + 1}
+                                </option>`
+        ).join('')}
+                        </select>
+                        <span class="text-gray-700 mx-1">of ${totalPages}</span>
+                        <button id="next-page-btn" class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 ml-1 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <button id="toggle-extracted-text" class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200">
                         <i class="fas fa-file-alt mr-1"></i> Show Text
                     </button>
                 </div>
@@ -232,14 +268,67 @@ export class DocumentViewer {
         setTimeout(() => {
             const toggleBtn = document.getElementById('toggle-extracted-text');
             const textContainer = document.getElementById('extracted-text-container');
+            const prevPageBtn = document.getElementById('prev-page-btn');
+            const nextPageBtn = document.getElementById('next-page-btn');
+            const prevPageBtnBig = document.getElementById('prev-page-btn-big');
+            const nextPageBtnBig = document.getElementById('next-page-btn-big');
+            const pageSelector = document.getElementById('page-selector');
 
+            // Setup text toggle
             if (toggleBtn && textContainer) {
                 toggleBtn.addEventListener('click', () => {
                     const isHidden = textContainer.classList.contains('hidden');
                     textContainer.classList.toggle('hidden');
-                    toggleBtn.innerHTML = isHidden ? 
+                    toggleBtn.innerHTML = isHidden ?
                         '<i class="fas fa-file-alt mr-1"></i> Hide Text' :
                         '<i class="fas fa-file-alt mr-1"></i> Show Text';
+                });
+            }
+
+            // Function to navigate to previous page
+            const goToPrevPage = () => {
+                if (this.currentPageId > 1) {
+                    this.currentPageId--;
+                    this.renderCurrentPage();
+                    this.updateActiveThumbnail();
+                }
+            };
+
+            // Function to navigate to next page
+            const goToNextPage = () => {
+                if (this.currentPageId < this.documentData.pages.length) {
+                    this.currentPageId++;
+                    this.renderCurrentPage();
+                    this.updateActiveThumbnail();
+                }
+            };
+
+            // Setup pagination controls - bottom small buttons
+            if (prevPageBtn) {
+                prevPageBtn.addEventListener('click', goToPrevPage);
+            }
+
+            if (nextPageBtn) {
+                nextPageBtn.addEventListener('click', goToNextPage);
+            }
+
+            // Setup pagination controls - big center buttons
+            if (prevPageBtnBig) {
+                prevPageBtnBig.addEventListener('click', goToPrevPage);
+            }
+
+            if (nextPageBtnBig) {
+                nextPageBtnBig.addEventListener('click', goToNextPage);
+            }
+
+            if (pageSelector) {
+                pageSelector.addEventListener('change', () => {
+                    const selectedPage = parseInt(pageSelector.value);
+                    if (!isNaN(selectedPage) && selectedPage >= 1 && selectedPage <= this.documentData.pages.length) {
+                        this.currentPageId = selectedPage;
+                        this.renderCurrentPage();
+                        this.updateActiveThumbnail();
+                    }
                 });
             }
         }, 100);
@@ -249,14 +338,21 @@ export class DocumentViewer {
         const page = this.getCurrentPage();
         if (!page) return;
 
-        const event = new CustomEvent('pageChanged', { detail: { page } });
+        // Dispatch page changed event to notify other components
+        const event = new CustomEvent('pageChanged', {
+            detail: {
+                page,
+                pageId: String(this.currentPageId)
+            }
+        });
         document.dispatchEvent(event);
+        console.log(`Dispatched pageChanged event for page ${this.currentPageId}`);
     }
 
     getDocumentId() {
         // If found an ID, sanitize it to remove path components and invalid URL characters
         let id = null;
-        
+
         // Try each potential ID source
         if (this.documentData.document_id) {
             id = this.documentData.document_id;
@@ -272,7 +368,7 @@ export class DocumentViewer {
                 id = fileName.split('.')[0];
             }
         }
-        
+
         // If we found an ID, sanitize it
         if (id) {
             // Remove any path components, keeping only the filename part
@@ -283,10 +379,10 @@ export class DocumentViewer {
                 id = parts[parts.length - 1];
                 console.log("Sanitized ID:", id);
             }
-            
+
             return id;
         }
-        
+
         console.error("Could not find document ID in:", this.documentData);
         return null;
     }
@@ -297,7 +393,7 @@ export class DocumentViewer {
         fileInput.accept = 'application/pdf,image/jpeg,image/png,image/jpg';
         fileInput.style.display = 'none';
         document.body.appendChild(fileInput);
-        
+
         fileInput.addEventListener('change', async (e) => {
             if (fileInput.files.length) {
                 const file = fileInput.files[0];
@@ -310,7 +406,7 @@ export class DocumentViewer {
                     // Get the document ID
                     const docId = this.getDocumentId();
                     console.log("Using document ID for add page:", docId);
-                    
+
                     if (!docId) {
                         console.error("Document data:", this.documentData);
                         throw new Error('Missing document ID in current document data. Check console for details.');
@@ -345,13 +441,13 @@ export class DocumentViewer {
                     // Fetch the updated document data
                     console.log("Fetching updated document data for ID:", docId);
                     const newDocData = await api.fetchDocumentData(docId);
-                    
+
                     console.log("Received updated document data:", newDocData);
-                    
+
                     if (!newDocData || !newDocData.pages) {
                         throw new Error('Retrieved invalid document data after page addition. Check server logs.');
                     }
-                    
+
                     this.documentData = newDocData;
 
                     // Go to the newly added page
@@ -371,44 +467,44 @@ export class DocumentViewer {
                 }
             }
         });
-    
+
         fileInput.click();
     }
-    
+
     removeCurrentPage() {
         if (!this.documentData || this.documentData.pages.length <= 1) {
             alert('Cannot remove the only page in the document.');
             return;
         }
-        
+
         if (!confirm(`Are you sure you want to remove page ${this.currentPageId}?`)) {
             return;
         }
-        
+
         const docId = this.getDocumentId();
         if (!docId) {
             alert('Cannot remove page: Missing document ID');
             return;
         }
-        
+
         console.log("Removing page from document ID:", docId);
-        
+
         api.removePage(docId, this.currentPageId)
             .then(result => {
                 if (result.success) {
                     this.documentData.pages = this.documentData.pages.filter(p => p.page_number !== this.currentPageId);
-                    
+
                     this.documentData.pages.forEach((page, idx) => {
                         page.page_number = idx + 1;
                     });
-                    
+
                     if (this.currentPageId > this.documentData.pages.length) {
                         this.currentPageId = this.documentData.pages.length;
                     }
-                    
+
                     this.renderThumbnails();
                     this.renderCurrentPage();
-                    
+
                     alert('Page removed successfully!');
                 } else {
                     throw new Error(result.message || 'Failed to remove page');

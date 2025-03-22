@@ -5,7 +5,105 @@ export class StudyTools {
         this.elements = elements;
         this.currentFileId = null;
         this.currentPageId = 1;
+        this.models = null;
+        this.selectedSummaryModel = null;
         this.initializeEventListeners();
+        this.loadAvailableModels();
+    }
+
+    async loadAvailableModels() {
+        try {
+            const modelData = await api.getAvailableModels();
+            if (modelData.available) {
+                this.models = modelData.models;
+                this.selectedSummaryModel = modelData.default_summary_model;
+                this.createModelSelector();
+            }
+        } catch (error) {
+            console.error('Error loading AI models:', error);
+        }
+    }
+
+    createModelSelector() {
+        // Only create if we have models and the selector doesn't exist yet
+        if (!this.models || document.getElementById('summary-model-selector')) {
+            return;
+        }
+
+        // Create a model selector for the summary view
+        const selectorContainer = document.createElement('div');
+        selectorContainer.className = 'model-selector-container flex items-center mb-2 text-xs';
+        selectorContainer.innerHTML = `
+            <label for="summary-model-selector" class="mr-2 text-gray-700">Summary model:</label>
+            <select id="summary-model-selector" class="p-1 border rounded text-xs">
+                ${Object.keys(this.models).map(model => `
+                    <option value="${model}" ${model === this.selectedSummaryModel ? 'selected' : ''}>
+                        ${model}
+                    </option>
+                `).join('')}
+            </select>
+            <div class="ml-2 text-gray-500 model-info"></div>
+            <button id="regenerate-summary" class="ml-2 px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700">
+                Regenerate
+            </button>
+        `;
+
+        // Insert at the top of the summary section
+        const summaryContainer = this.elements.summaryContent;
+        summaryContainer.insertBefore(selectorContainer, summaryContainer.firstChild);
+
+        // Add event listeners
+        const selector = document.getElementById('summary-model-selector');
+        const modelInfo = selectorContainer.querySelector('.model-info');
+        const regenerateBtn = document.getElementById('regenerate-summary');
+
+        // Update model info initially
+        this.updateModelInfo(modelInfo, this.selectedSummaryModel);
+
+        // Update when selection changes
+        selector.addEventListener('change', () => {
+            this.selectedSummaryModel = selector.value;
+            this.updateModelInfo(modelInfo, this.selectedSummaryModel);
+        });
+
+        // Regenerate summary with selected model
+        regenerateBtn.addEventListener('click', () => this.regenerateSummary());
+    }
+
+    updateModelInfo(infoElement, modelName) {
+        if (this.models && this.models[modelName]) {
+            const model = this.models[modelName];
+            infoElement.textContent = `${model.description}`;
+        }
+    }
+
+    async regenerateSummary() {
+        if (!this.currentFileId || !this.currentPageId) {
+            return;
+        }
+
+        try {
+            // Show loading indicator
+            const summaryContent = this.elements.summaryContent.querySelector('.summary-text');
+            if (summaryContent) {
+                summaryContent.innerHTML = '<p class="text-gray-500">Regenerating summary...</p>';
+            }
+
+            // Call API to regenerate the summary
+            await api.analyzeDocument(this.currentFileId, this.selectedSummaryModel);
+
+            // Reload the document data
+            const docData = await api.fetchDocumentData(this.currentFileId);
+
+            // Find the current page
+            const currentPage = docData.pages.find(p => p.page_number === this.currentPageId);
+            if (currentPage) {
+                this.updateContent(currentPage);
+            }
+        } catch (error) {
+            console.error('Error regenerating summary:', error);
+            alert('Failed to regenerate summary. Please try again.');
+        }
     }
 
     initializeEventListeners() {
@@ -69,12 +167,24 @@ export class StudyTools {
     }
 
     updateSummary(summary) {
-        this.elements.summaryContent.innerHTML = `
-            <div class="p-4 bg-indigo-50 rounded-lg">
+        // Find if there's already a summary container
+        let summaryTextContainer = this.elements.summaryContent.querySelector('.summary-text');
+
+        // If model selector exists, update just the text
+        if (summaryTextContainer) {
+            summaryTextContainer.innerHTML = `
                 <h4 class="font-semibold mb-2">Summary</h4>
                 <p>${summary}</p>
-            </div>
-        `;
+            `;
+        } else {
+            // Otherwise, create the whole container
+            this.elements.summaryContent.innerHTML = `
+                <div class="summary-text p-4 bg-indigo-50 rounded-lg">
+                    <h4 class="font-semibold mb-2">Summary</h4>
+                    <p>${summary}</p>
+                </div>
+            `;
+        }
     }
 
     updateNotes(notes) {
