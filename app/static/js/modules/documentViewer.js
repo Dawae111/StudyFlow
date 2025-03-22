@@ -135,7 +135,7 @@ export class DocumentViewer {
 
     getDefaultContentHTML(page) {
         return `
-            <div class="overflow-auto max-h-[calc(100vh-90px)]">
+            <div class="overflow-auto h-screen">
                 <div class="text-sm whitespace-pre-wrap">${page.text}</div>
             </div>
             ${this.getPageIndicatorHTML()}
@@ -144,7 +144,7 @@ export class DocumentViewer {
 
     getImageContentHTML(page) {
         return `
-            <div class="mb-2 overflow-auto max-h-[calc(100vh-90px)]">
+            <div class="mb-2 overflow-auto h-screen">
                 <img src="${this.documentData.file_url}" class="max-w-full h-auto rounded" alt="Uploaded image">
             </div>
             ${this.getPageIndicatorHTML()}
@@ -153,16 +153,16 @@ export class DocumentViewer {
 
     getPDFContentHTML(page) {
         return `
-            <div class="relative mb-1 overflow-auto max-h-[calc(100vh-60px)]">
+            <div class="relative mb-1 overflow-auto h-screen">
                 <div class="absolute top-1 left-1 right-1 flex justify-between items-center z-10 bg-white bg-opacity-80 rounded p-1 text-xs">
                     <p class="text-gray-500 italic">PDF - ${this.documentData.pages.length} pages</p>
                     <a href="${this.documentData.download_url}" download class="text-indigo-600 hover:underline flex items-center">
                         <i class="fas fa-download mr-1"></i> Download
                     </a>
                 </div>
-                <div class="pdf-container h-[calc(100vh-65px)]">
+                <div class="pdf-container h-screen">
                     <object data="${this.documentData.file_url}" 
-                        type="application/pdf" width="100%" height="100%" class="border rounded">
+                        type="application/pdf" width="100%" height="100%" class="border rounded h-screen">
                         <div class="p-4 bg-gray-100 rounded">
                             <p>It seems your browser doesn't support embedded PDFs.</p>
                             <a href="${this.documentData.file_url}" target="_blank" class="text-indigo-600 hover:underline">
