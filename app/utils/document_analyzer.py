@@ -23,17 +23,17 @@ AI_MODELS = {
         "cost_per_1k": "$0.002",
         "use_case": "General purpose, summaries, Q&A"
     },
-    "gpt-4": {
-        "description": "More advanced reasoning and higher accuracy",
-        "max_tokens": 8000,
-        "cost_per_1k": "$0.03",
-        "use_case": "Complex reasoning, detailed analysis"
-    },
     "gpt-4-turbo": {
         "description": "Latest model with enhanced capabilities",
         "max_tokens": 128000,
         "cost_per_1k": "$0.01",
         "use_case": "Most advanced reasoning, analysis of larger documents"
+    },
+    "gpt-4": {
+        "description": "More advanced reasoning and higher accuracy",
+        "max_tokens": 8000,
+        "cost_per_1k": "$0.03",
+        "use_case": "Complex reasoning, detailed analysis"
     }
 }
 
@@ -140,7 +140,7 @@ def generate_summary(text, model=None):
                 model=model,
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant that clarify contents and help user understand contents confusing."},
-                    {"role": "user", "content": f"Explain and clarify concept and ideas of the following text:\n\n{text}"}
+                    {"role": "user", "content": f"Explain and clarify concept and ideas of the following text:\n\n{text}, do not output latex"}
                 ],
                 max_tokens=150,
                 temperature=0.3
@@ -257,7 +257,7 @@ def get_answer(question, file_id, page_id=None, model=None):
                     model=model,
                     messages=[
                         {"role": "system", "content": "You are a helpful assistant that answers questions based on knowledge you have and also the provided document text."},
-                        {"role": "user", "content": f"Based on knowledge you have and this content:\n\n{context}\n\nAnswer this question: {question}"}
+                        {"role": "user", "content": f"Based on knowledge you have and this content:\n\n{context}\n\nAnswer this question: {question}, do not output latex"}
                     ],
                     max_tokens=max_output_tokens,
                     temperature=0.5

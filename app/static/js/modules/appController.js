@@ -3,6 +3,8 @@ import { DocumentViewer } from './documentViewer.js';
 import { StudyTools } from './studyTools.js';
 import { UIManager } from './uiUtils.js';
 import { QAHandler } from './qaHandler.js';
+import { FileListHandler } from './fileList.js';
+import { api } from './api.js';
 
 export class AppController {
     constructor(elements) {
@@ -17,9 +19,15 @@ export class AppController {
         this.studyTools = new StudyTools(elements);
         this.qaHandler = new QAHandler(elements, this);
         this.fileUploadHandler = new FileUploadHandler(elements, this.handleFileProcessed.bind(this));
+
+        // Add listener for summaries updated event
+        document.addEventListener('summariesUpdated', (e) => {
+            this.handleSummariesUpdated(e.detail.documentData);
+        });
+        this.fileListHandler = new FileListHandler(elements, this.handleFileSelected.bind(this));
     }
 
-    init() {
+    init() {    
         console.log("StudyFlow App initializing...");
 
         // Check server connection
@@ -39,8 +47,9 @@ export class AppController {
     handleFileProcessed(documentData, fileId) {
         console.log(`Processing file with ID: ${fileId}`);
 
-        // Hide upload section, show document viewer
+        // Hide upload section and header, show document viewer
         this.elements.uploadSection.classList.add('hidden');
+        this.elements.header.classList.add('hidden');
         this.elements.documentViewer.classList.remove('hidden');
 
         // Set file ID for both components
@@ -74,6 +83,46 @@ export class AppController {
         }
     }
 
+    handleFileSelected(file) {
+        console.log(`Selected file: ${file.name}`);
+        // Hide upload section and header, show document viewer
+        this.elements.uploadSection.classList.add('hidden');
+        this.elements.header.classList.add('hidden');
+        this.elements.documentViewer.classList.remove('hidden');
+
+        // Set file ID for both components
+        this.currentFileId = file.id;
+        this.studyTools.setFileId(file.id);
+
+        // Fetch and render document data
+        console.log(`Fetching and rendering document data for file: ${file.id}`);
+        this.fetchAndRenderDocument(file.id);
+    }
+
+    async fetchAndRenderDocument(fileId) {
+        try {
+            const documentData = await api.fetchDocumentData(fileId);
+            console.log(`Document data: ${documentData}`);
+            const currentPage = this.documentViewer.renderDocument(documentData);
+            console.log(`Current page: ${currentPage}`);
+            if (currentPage) {
+                this.studyTools.updateContent(currentPage);
+                this.qaHandler.initializeWithCurrentFile(fileId, currentPage.page_number);
+
+                const event = new CustomEvent('pageChanged', {
+                    detail: {
+                        page: currentPage,
+                        pageId: String(currentPage.page_number)
+                    }
+                });
+                document.dispatchEvent(event);
+            }
+        } catch (error) {
+            console.error('Error fetching document:', error);
+            alert('Error loading document. Please try again.');
+        }
+    }
+
     async checkServerConnection() {
         try {
             const response = await fetch('/api/debug/document/health-check', {
@@ -84,6 +133,23 @@ export class AppController {
         } catch (error) {
             console.error("Failed to connect to server:", error);
             return false;
+        }
+    }
+
+    // New method to handle updated summaries
+    handleSummariesUpdated(documentData) {
+        if (!documentData || !documentData.pages || !this.currentFileId) {
+            return;
+        }
+
+        console.log('AppController: Handling updated summaries');
+
+        // Update study tools with current page data
+        const currentPageId = this.documentViewer.currentPageId;
+        const currentPage = documentData.pages.find(p => p.page_number === currentPageId);
+
+        if (currentPage) {
+            this.studyTools.updateContent(currentPage);
         }
     }
 } 

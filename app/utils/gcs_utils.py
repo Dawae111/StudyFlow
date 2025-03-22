@@ -116,4 +116,52 @@ def delete_file_from_gcs(file_id, file_extension):
         
     except Exception as e:
         print(f"Error deleting file from GCS: {str(e)}")
+        raise
+
+def list_files_in_bucket():
+    """List all files in the GCS bucket
+    
+    Returns:
+        list: List of dictionaries containing file information
+    """
+    try:
+        client = get_gcs_client()
+        bucket_name = current_app.config['GOOGLE_CLOUD_BUCKET']
+        bucket = client.bucket(bucket_name)
+        
+        files = []
+        blobs = bucket.list_blobs(prefix='uploads/')
+        
+        for blob in blobs:
+            # Skip if it's a directory
+            if blob.name.endswith('/'):
+                continue
+                
+            # Extract file ID and original filename from the blob name
+            # Format: uploads/originalname_fileid.extension
+            parts = blob.name.split('/')[-1].split('_')
+            if len(parts) >= 2:
+                original_name = '_'.join(parts[:-1])
+                file_id = parts[-1].split('.')[0]
+                extension = parts[-1].split('.')[-1]
+                
+                # Generate a signed URL that expires in 7 days
+                url = blob.generate_signed_url(
+                    version="v4",
+                    expiration=datetime.utcnow() + timedelta(days=7),
+                    method="GET"
+                )
+                
+                files.append({
+                    'id': file_id,
+                    'name': original_name,
+                    'extension': extension,
+                    'url': url,
+                    'created': blob.time_created.isoformat() if blob.time_created else None
+                })
+        
+        return files
+        
+    except Exception as e:
+        print(f"Error listing files from GCS: {str(e)}")
         raise 

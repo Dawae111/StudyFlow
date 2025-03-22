@@ -14,6 +14,7 @@
         window.pdfjsLib.GlobalWorkerOptions = window.pdfjsLib.GlobalWorkerOptions || {};
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.5.141/pdf.worker.min.js';
     </script>
+    <link rel="stylesheet" href="/static/css/custom.css">
     <style>
         .drag-area {
             border: 2px dashed #6c63ff;
@@ -185,20 +186,45 @@
 
     <!-- Main Content -->
     <main class="w-full h-screen flex flex-col">
+        <header id="app-header" class="bg-white shadow-md">
+            <div class="container mx-auto px-4 py-6 flex justify-between items-center">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-indigo-600">StudyFlow</h1>
+                    <span class="ml-2 text-gray-500">Enhanced Learning</span>
+                </div>
+            </div>
+        </header>
+        
         <div id="upload-section" class="px-8 py-8">
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-4">Upload Your Materials</h2>
-                <p class="text-gray-600 mb-6">Upload PDFs or images of lecture slides, research papers, or study
-                    materials for AI-powered summaries and Q&A.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Left Column: File List -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="p-4 border-b">
+                        <h2 class="text-lg font-semibold text-gray-900">Your Documents</h2>
+                    </div>
+                    <div id="file-list" class="divide-y divide-gray-200 max-h-[calc(100vh-12rem)] overflow-y-auto">
+                        <!-- File list items will be dynamically added here -->
+                    </div>
+                </div>
 
-                <div class="drag-area cursor-pointer" id="drop-area">
-                    <div class="icon"><i class="fas fa-cloud-upload-alt text-5xl text-indigo-500 mb-4"></i></div>
-                    <header class="text-lg">Drag & Drop</header>
-                    <span class="text-gray-500 my-2">OR</span>
-                    <button class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">Browse
-                        Files</button>
-                    <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png" hidden>
-                    <p class="mt-2 text-gray-500 text-sm">Supported formats: PDF, JPG, PNG</p>
+                <!-- Right Column: Upload Section -->
+                <div class="md:col-span-2">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold mb-4">Upload Your Materials</h2>
+                        <p class="text-gray-600 mb-6">Upload PDFs or images of lecture slides, research papers, or study
+                            materials for AI-powered summaries and Q&A.</p>
+
+                        <div class="drag-area cursor-pointer" id="drop-area">
+                            <div class="icon"><i class="fas fa-cloud-upload-alt text-5xl text-indigo-500 mb-4"></i></div>
+                            <header class="text-lg">Drag & Drop</header>
+                            <span class="text-gray-500 my-2">OR</span>
+                            <button class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">Browse
+                                Files</button>
+                            <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png" hidden>
+                            <p class="mt-2 text-gray-500 text-sm">Supported formats: PDF, JPG, PNG</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -262,11 +288,15 @@
 
                 <!-- Q&A Input (only shown when Q&A tab is active) -->
                 <div id="qa-input-container" class="hidden mt-2 border-t pt-2 bg-white">
-                    <div class="flex items-center border rounded-lg overflow-hidden">
-                        <input id="question-input" type="text" class="flex-grow px-4 py-2 focus:outline-none"
-                            placeholder="Ask a question about this content...">
-                        <button id="ask-button"
-                            class="bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700 transition">Ask</button>
+                    <!-- Model selector will be inserted here by the qaHandler.js -->
+                    <div class="flex flex-col mt-2">
+                        <div class="flex items-center overflow-hidden w-full">
+                            <input id="question-input" type="text"
+                                class="flex-grow px-4 py-1 focus:outline-none w-full min-w-0"
+                                placeholder="Ask a question about this content...">
+                            <button id="ask-button"
+                                class="bg-indigo-600 text-white px-4 py-1 hover:bg-indigo-700 transition">Ask</button>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -2,12 +2,11 @@ import os
 import PyPDF2
 from PIL import Image
 import pytesseract
-from app.utils.document_analyzer import generate_summary
 import json
 import tempfile
 
 def process_file(file_path):
-    """Extract text from a file and generate summaries
+    """Extract text from a file
     
     Args:
         file_path (str): Path to the file
@@ -50,7 +49,7 @@ def process_file(file_path):
         }
 
 def process_pdf(file_path):
-    """Extract text from PDF file and generate summaries
+    """Extract text from PDF file
     
     Args:
         file_path (str): Path to the PDF file
@@ -69,7 +68,7 @@ def process_pdf(file_path):
             return [{
                 'page_number': 1,
                 'text': f"[Error: PDF file not found at path: {file_path}]",
-                'summary': "Could not find the PDF file.",
+                'summary': "",
                 'notes': ''
             }]
             
@@ -82,7 +81,7 @@ def process_pdf(file_path):
             return [{
                 'page_number': 1,
                 'text': "[Error: PDF file is empty (0 bytes)]",
-                'summary': "The PDF file is empty.",
+                'summary': "",
                 'notes': ''
             }]
         
@@ -96,7 +95,7 @@ def process_pdf(file_path):
                     return [{
                         'page_number': 1,
                         'text': f"[Error initializing PDF reader: {str(e)}]",
-                        'summary': "Could not read the PDF format.",
+                        'summary': "",
                         'notes': ''
                     }]
                 
@@ -108,7 +107,7 @@ def process_pdf(file_path):
                     return [{
                         'page_number': 1,
                         'text': f"[Error getting page count: {str(e)}]",
-                        'summary': "Could not determine the number of pages.",
+                        'summary': "",
                         'notes': ''
                     }]
                 
@@ -117,7 +116,7 @@ def process_pdf(file_path):
                     return [{
                         'page_number': 1,
                         'text': "[PDF has 0 pages]",
-                        'summary': "The PDF has no pages.",
+                        'summary': "",
                         'notes': ''
                     }]
                 
@@ -127,13 +126,10 @@ def process_pdf(file_path):
                         page = pdf_reader.pages[i]
                         text = page.extract_text() or f"[Page {i+1} - No text could be extracted]"
                         
-                        # Generate summary
-                        summary = generate_summary(text)
-                        
                         page_data = {
                             'page_number': i + 1,
                             'text': text,
-                            'summary': summary,
+                            'summary': "",
                             'notes': ''
                         }
                         
@@ -145,7 +141,7 @@ def process_pdf(file_path):
                         pages_data.append({
                             'page_number': i + 1,
                             'text': f"[Error extracting text from page {i+1}: {str(e)}]",
-                            'summary': "Could not generate summary due to text extraction error.",
+                            'summary': "",
                             'notes': ''
                         })
             except Exception as e:
@@ -154,7 +150,7 @@ def process_pdf(file_path):
                 pages_data.append({
                     'page_number': 1,
                     'text': f"[Error reading PDF: {str(e)}]",
-                    'summary': "Could not process this PDF file.",
+                    'summary': "",
                     'notes': ''
                 })
     except Exception as e:
@@ -163,7 +159,7 @@ def process_pdf(file_path):
         pages_data.append({
             'page_number': 1,
             'text': f"[Error opening file: {str(e)}]",
-            'summary': "Could not open this PDF file.",
+            'summary': "",
             'notes': ''
         })
     
@@ -172,14 +168,14 @@ def process_pdf(file_path):
         pages_data.append({
             'page_number': 1,
             'text': "[No content could be extracted from this PDF]",
-            'summary': "No content available to summarize.",
+            'summary': "",
             'notes': ''
         })
     
     return pages_data
 
 def process_image(file_path):
-    """Extract text from image using OCR and generate summaries
+    """Extract text from image using OCR
     
     Args:
         file_path (str): Path to the image file
@@ -223,7 +219,6 @@ def process_image(file_path):
                 print("Tesseract OCR not found. Using fallback mode.")
                 # Generate a placeholder response
                 text = "[Image uploaded successfully but OCR is not available. Tesseract OCR needs to be installed.]"
-                summary = "Image processing requires Tesseract OCR to be installed."
             else:
                 print("Performing OCR on image...")
                 text = pytesseract.image_to_string(image)
@@ -233,14 +228,11 @@ def process_image(file_path):
                     print("OCR completed but no text was found")
                 else:
                     print(f"OCR completed, extracted {len(text)} characters")
-                
-                # Generate summary
-                summary = generate_summary(text)
             
             page_data = {
                 'page_number': 1,
                 'text': text,
-                'summary': summary if 'summary' in locals() else "No summary available for this image.",
+                'summary': "",
                 'notes': ''
             }
             
@@ -250,7 +242,7 @@ def process_image(file_path):
             return [{
                 'page_number': 1,
                 'text': f"[Error extracting text: {str(e)}]",
-                'summary': "Could not generate summary due to OCR error.",
+                'summary': "",
                 'notes': ''
             }]
     except Exception as e:
@@ -258,7 +250,7 @@ def process_image(file_path):
         return [{
             'page_number': 1,
             'text': f"[Error opening image: {str(e)}]",
-            'summary': "Could not open this image file.",
+            'summary': "",
             'notes': ''
         }]
 

@@ -19,7 +19,6 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-
 @api.route('/add-page', methods=['POST'])
 def add_page():
     """Handles adding a new page to an existing document"""
@@ -199,7 +198,6 @@ def add_page():
         }), 500
 
 
-
 @api.route('/remove-page', methods=['POST'])
 def remove_page():
     """Handles removing a page from an existing document"""
@@ -337,84 +335,138 @@ def get_summaries(file_id):
     import json
     import tempfile
     from flask import current_app, url_for
-    
-    # Try to load the processed data from temporary storage
+    from app.utils.gcs_utils import get_file_from_gcs, list_files_in_bucket
+
+    # First try local storage (for newly uploaded files)
     temp_dir = os.path.join(tempfile.gettempdir(), 'studyflow')
-    file_path = os.path.join(temp_dir, f"{file_id}.json")
-    
-    # Look for the original file or the merged file
     upload_folder = current_app.config['UPLOAD_FOLDER']
     
-    # Check for a merged PDF first
+    print(f"Checking for JSON files in:")
+    print(f"Temp directory: {temp_dir}")
+    print(f"Upload folder: {upload_folder}")
+
+    # Check for local files first (for newly uploaded files)
     merged_pdf_path = os.path.join(upload_folder, f"{file_id}_merged.pdf")
-    if os.path.exists(merged_pdf_path):
-        original_file_path = merged_pdf_path
-        file_type = 'pdf'
-    else:
-        # Fall back to the original search 
-        original_files = glob.glob(os.path.join(upload_folder, f"{file_id}.*"))
-        original_file_path = original_files[0] if original_files else None
-        file_type = os.path.splitext(original_file_path)[1].lower()[1:] if original_file_path else "unknown"
+    original_files = glob.glob(os.path.join(upload_folder, f"{file_id}.*"))
+    json_path = os.path.join(temp_dir, f"{file_id}.json")
     
-    if original_file_path:
-        # Make the path relative to static folder for serving
-        relative_path = os.path.relpath(original_file_path, os.path.join(current_app.root_path, 'static'))
-        file_url = f"/static/{relative_path}"
-        
-        # Add direct URL for downloading
-        download_url = f"/static/{relative_path}"
-        
-        # For PDF files, we might want to convert pages to images (future enhancement)
-        pdf_page_images = []
-        if file_type == 'pdf':
-            # In a production app, we'd extract and save images for each page
-            # For this MVP, we'll just provide the PDF URL directly
-            pass
-    else:
-        file_type = "unknown"
-        file_url = None
-        download_url = None
-        pdf_page_images = []
-    
-    if os.path.exists(file_path):
+    print(f"Looking for JSON file at: {json_path}")
+    print(f"File exists: {os.path.exists(json_path)}")
+
+    # If we have local files, use the existing flow
+    if os.path.exists(merged_pdf_path) or original_files or os.path.exists(json_path):
+        if os.path.exists(merged_pdf_path):
+            original_file_path = merged_pdf_path
+            file_type = 'pdf'
+        elif original_files:
+            original_file_path = original_files[0]
+            file_type = os.path.splitext(original_file_path)[1].lower()[1:]
+        else:
+            original_file_path = None
+            file_type = "unknown"
+
+        # Set up URLs for local files
+        if original_file_path:
+            relative_path = os.path.relpath(
+                original_file_path, os.path.join(current_app.root_path, 'static'))
+            file_url = f"/static/{relative_path}"
+            download_url = f"/static/{relative_path}"
+        else:
+            file_url = None
+            download_url = None
+
+        # Try to load processed data
+        if os.path.exists(json_path):
+            try:
+                with open(json_path, 'r') as f:
+                    data = json.load(f)
+                    data.update({
+                        'file_type': file_type,
+                        'file_url': file_url,
+                        'download_url': download_url,
+                        'is_merged': os.path.exists(merged_pdf_path),
+                        'is_pdf': file_type.lower() == 'pdf'
+                    })
+                    return jsonify(data), 200
+            except Exception as e:
+                print(f"Error loading local file data: {str(e)}")
+
+    # If not found locally, try GCS
+    try:
+        # Find the file in GCS
+        files = list_files_in_bucket()
+        matching_file = next((f for f in files if f['id'] == file_id), None)
+
+        if not matching_file:
+            return jsonify({'error': 'File not found in local storage or GCS'}), 404
+
+        # Download and process the file
+        file_content = get_file_from_gcs(
+            file_id, matching_file['extension'], matching_file['name'])
+
+        # Save to temporary file for processing
+        temp_file = os.path.join(
+            temp_dir, f"temp_{file_id}.{matching_file['extension']}")
+        os.makedirs(os.path.dirname(temp_file), exist_ok=True)
+
+        with open(temp_file, 'wb') as f:
+            f.write(file_content)
+
         try:
-            with open(file_path, 'r') as f:
-                data = json.load(f)
-                # Add file information
-                data['file_type'] = file_type
-                data['file_url'] = file_url
-                data['download_url'] = download_url
-                data['pdf_page_images'] = pdf_page_images
-                
-                # Add flag to indicate if this is a merged PDF
-                data['is_merged'] = os.path.exists(merged_pdf_path)
-                
-                return jsonify(data), 200
-        except Exception as e:
-            print(f"Error loading file data: {str(e)}")
-    
-    # If we couldn't load the data, return dummy data
-    return jsonify({
-        'file_type': file_type,
-        'file_url': file_url,
-        'download_url': download_url,
-        'pdf_page_images': pdf_page_images,
-        'is_merged': os.path.exists(merged_pdf_path),
-        'pages': [
-            {
-                'page_number': 1,
-                'text': 'Sample extracted text from page 1...',
-                'summary': 'This is a summary of page 1.',
-                'notes': ''
-            },
-            {
-                'page_number': 2,
-                'text': 'Sample extracted text from page 2...',
-                'summary': 'This is a summary of page 2.',
-                'notes': ''
+            # Process based on file type
+            file_type = matching_file['extension'].lower()
+            if file_type == 'pdf':
+                pages_data = process_pdf(temp_file)
+            elif file_type in ['jpg', 'jpeg', 'png']:
+                pages_data = process_image(temp_file)
+            else:
+                raise ValueError(f"Unsupported file type: {file_type}")
+
+            # Create document data with proper PDF flags
+            document_data = {
+                'file_id': file_id,
+                'file_type': file_type,
+                'file_url': matching_file['url'],
+                'download_url': matching_file['url'],
+                'pages': pages_data,
+                'is_merged': False,
+                'is_pdf': file_type == 'pdf',
+                'original_name': matching_file['name'],
+                'created': matching_file.get('created'),
+                'total_pages': len(pages_data) if pages_data else 0
             }
-        ]
-    }), 200
+
+            # Save the processed data to a JSON file
+            json_path = os.path.join(temp_dir, f"{file_id}.json")
+            os.makedirs(os.path.dirname(json_path), exist_ok=True)
+            with open(json_path, 'w') as f:
+                json.dump(document_data, f)
+
+            # For PDFs, also save the file locally for viewing
+            if file_type == 'pdf':
+                pdf_path = os.path.join(upload_folder, f"{file_id}.pdf")
+                with open(pdf_path, 'wb') as f:
+                    f.write(file_content)
+                
+                # Update the URLs to point to the local file
+                relative_path = os.path.relpath(pdf_path, os.path.join(current_app.root_path, 'static'))
+                document_data['file_url'] = f"/static/{relative_path}"
+                document_data['download_url'] = f"/static/{relative_path}"
+
+            return jsonify(document_data), 200
+
+        finally:
+            # Clean up temp file
+            try:
+                os.remove(temp_file)
+            except Exception as e:
+                print(
+                    f"Warning: Could not remove temp file {temp_file}: {str(e)}")
+
+    except Exception as e:
+        print(f"Error processing GCS file: {str(e)}")
+        return jsonify({'error': f'Error processing file: {str(e)}'}), 500
+
 
 @api.route('/ask', methods=['POST'])
 def ask_question():
@@ -429,32 +481,35 @@ def ask_question():
     file_id = data.get('file_id') or data.get('fileId')
     page_id = data.get('page_id') or data.get('pageId')
     model = data.get('model')  # Optional model selection
-    
+
     print(f"Ask question request data: {data}")
-    
+
     if not question:
         return jsonify({'error': 'Question is required'}), 400
-    
+
     if not file_id:
         return jsonify({'error': 'file_id is required'}), 400
-    
+
     try:
         # Log the question for debugging
-        print(f"Question asked: '{question}' for file {file_id}, page {page_id}, model {model or 'default'}")
-        
+        print(
+            f"Question asked: '{question}' for file {file_id}, page {page_id}, model {model or 'default'}")
+
         # Validate model from document_analyzer
         from app.utils.document_analyzer import validate_model_name, DEFAULT_QA_MODEL
-        
+
         # If no model specified or invalid model, use default
-        validated_model = validate_model_name(model) if model else DEFAULT_QA_MODEL
-        
+        validated_model = validate_model_name(
+            model) if model else DEFAULT_QA_MODEL
+
         # If model changed after validation, log it
         if model != validated_model:
-            print(f"Model requested: {model} but using validated model: {validated_model}")
-        
+            print(
+                f"Model requested: {model} but using validated model: {validated_model}")
+
         # Get answer using the current page for better context
         answer = get_answer(question, file_id, page_id, model=validated_model)
-        
+
         # Return both the answer and the model that was actually used
         return jsonify({
             'answer': answer,
@@ -469,14 +524,14 @@ def ask_question():
 def update_notes(page_id):
     """Update user notes for a page"""
     data = request.json
-    
+
     if not data or 'userNotes' not in data:
         return jsonify({'error': 'Missing required fields'}), 400
-    
+
     user_notes = data['userNotes']
-    
+
     # TODO: Save notes to database
-    
+
     return jsonify({
         'status': 'success',
         'message': 'Notes updated successfully'
@@ -488,14 +543,12 @@ def debug_document(file_id):
     import json
     import os
     import tempfile
-    
     response_data = {
         'file_id': file_id,
         'locations_checked': [],
         'document_found': False,
         'document_data': None
     }
-    
     # Check uploads/studyflow location
     upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'studyflow')
     file_path1 = os.path.join(upload_dir, f"{file_id}.json")
@@ -503,7 +556,6 @@ def debug_document(file_id):
         'path': file_path1,
         'exists': os.path.exists(file_path1)
     })
-    
     # Check temp/studyflow location
     temp_dir = os.path.join(tempfile.gettempdir(), 'studyflow')
     file_path2 = os.path.join(temp_dir, f"{file_id}.json")
@@ -511,7 +563,6 @@ def debug_document(file_id):
         'path': file_path2,
         'exists': os.path.exists(file_path2)
     })
-    
     # Load file if found
     for location in response_data['locations_checked']:
         if location['exists']:
@@ -522,8 +573,9 @@ def debug_document(file_id):
                     break
             except Exception as e:
                 location['error'] = str(e)
-    
+
     return jsonify(response_data)
+
 
 @api.route('/debug/document/health-check', methods=['GET'])
 def health_check():
@@ -612,3 +664,19 @@ def select_text():
             'success': False,
             'error': str(e)
         }), 500 
+
+@api.route('/files', methods=['GET'])
+def list_files():
+    """Get list of files from GCS bucket"""
+    try:
+        files = list_files_in_bucket()
+        return jsonify({
+            'files': files,
+            'success': True
+        }), 200
+    except Exception as e:
+        print(f"Error listing files: {str(e)}")
+        return jsonify({
+            'error': f'Error listing files: {str(e)}',
+            'success': False
+        }), 500

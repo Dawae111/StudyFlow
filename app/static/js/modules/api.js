@@ -143,5 +143,10 @@ export const api = {
                 error: error.message || 'Network error occurred'
             };
         }
+    },
+
+    async listFiles() {
+        const response = await fetch('/api/files');
+        return response.json();
     }
 };

@@ -17,10 +17,17 @@ export class DocumentViewer {
 
     setupEventListeners() {
         document.addEventListener('keydown', (e) => this.handleKeyboardNavigation(e));
+
+        // Listen for summary updates from background processing
+        document.addEventListener('summariesUpdated', (e) => {
+            this.handleSummariesUpdated(e.detail.documentData);
+        });
     }
 
     renderDocument(documentData) {
+        // Clean up any existing PDF monitoring
         this.cleanupPdfMonitoring();
+
         this.documentData = documentData;
         this.renderThumbnails();
         return this.renderCurrentPage();
@@ -40,10 +47,17 @@ export class DocumentViewer {
             <button id="add-page-btn" class="text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">
                 <i class="fas fa-plus mr-1"></i> Add Page
             </button>
+            <!-- 
+            <button id="remove-page-btn" class="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+                <i class="fas fa-trash mr-1"></i> Remove Page
+            </button>
+            -->
         `;
         thumbnailsContainer.appendChild(controlsContainer);
 
         controlsContainer.querySelector('#add-page-btn').addEventListener('click', () => this.addNewPage());
+        // Comment out the event listener for remove button
+        // controlsContainer.querySelector('#remove-page-btn').addEventListener('click', () => this.removeCurrentPage());
 
         this.documentData.pages.forEach(page => {
             const pageElement = this.createThumbnail(page);
@@ -145,6 +159,12 @@ export class DocumentViewer {
 
         console.log(`DocumentViewer rendered page ${this.currentPageId}`);
 
+
+        // Add an event listener for the PDF object if it's a PDF
+        if (this.documentData.file_type === 'pdf') {
+            this.monitorPdfPageChange();
+        }
+
         return page;
     }
 
@@ -196,6 +216,7 @@ export class DocumentViewer {
                     </a>
                 </div>
                 
+                <!-- Pagination Controls - Center of screen -->
                 <div class="absolute top-1/2 left-0 right-0 flex justify-between items-center z-20 px-2 pointer-events-none">
                     <button id="prev-page-btn-big" class="px-3 py-3 bg-gray-800 bg-opacity-50 text-white rounded-full hover:bg-opacity-70 pointer-events-auto ${currentPage === 1 ? 'opacity-25 cursor-not-allowed' : ''}">
                         <i class="fas fa-chevron-left"></i>
@@ -355,6 +376,7 @@ export class DocumentViewer {
         const page = this.getCurrentPage();
         if (!page) return;
 
+        // Dispatch page changed event to notify other components
         const event = new CustomEvent('pageChanged', {
             detail: {
                 page,
@@ -366,7 +388,10 @@ export class DocumentViewer {
     }
 
     getDocumentId() {
+        // If found an ID, sanitize it to remove path components and invalid URL characters
         let id = null;
+
+        // Try each potential ID source
         if (this.documentData.document_id) {
             id = this.documentData.document_id;
         } else if (this.documentData.file_id) {
@@ -374,6 +399,7 @@ export class DocumentViewer {
         } else if (this.documentData.id) {
             id = this.documentData.id;
         } else if (this.documentData.file_url) {
+            // Try to extract from URL
             const urlParts = this.documentData.file_url.split('/');
             const fileName = urlParts[urlParts.length - 1];
             if (fileName && fileName.includes('.')) {
@@ -381,11 +407,17 @@ export class DocumentViewer {
             }
         }
 
+        // If we found an ID, sanitize it
         if (id) {
+            // Remove any path components, keeping only the filename part
             if (id.includes('\\') || id.includes('/')) {
+                console.log("Sanitizing ID with path separators:", id);
+                // Get just the last part after any slash or backslash
                 const parts = id.split(/[\\\/]/);
                 id = parts[parts.length - 1];
+                console.log("Sanitized ID:", id);
             }
+
             return id;
         }
 
@@ -409,11 +441,16 @@ export class DocumentViewer {
                         this.elements.loadingMessage.textContent = 'Adding new page...';
                     }
 
+                    // Get the document ID
                     const docId = this.getDocumentId();
+                    console.log("Using document ID for add page:", docId);
+
                     if (!docId) {
-                        throw new Error('Missing document ID in current document data.');
+                        console.error("Document data:", this.documentData);
+                        throw new Error('Missing document ID in current document data. Check console for details.');
                     }
 
+                    // Update the loading message to be more descriptive based on file type
                     if (file.type.includes('pdf')) {
                         this.updateLoadingMessage('Processing PDF pages...');
                     } else if (file.type.includes('image')) {
@@ -424,21 +461,34 @@ export class DocumentViewer {
                     formData.append('file', file);
                     formData.append('documentId', docId);
 
+                    console.log("📤 Sending request to /api/add-page with documentId:", docId);
+                    console.log("📤 File being uploaded:", file.name, "Size:", file.size, "Type:", file.type);
+
+                    // Make the API request
                     const result = await api.addPage(formData);
+                    console.log("📥 API Response:", result);
+
                     if (!result.success) {
                         throw new Error(result.error || 'Failed to add page - server returned an error');
                     }
 
+                    // Show pages added in loading message
                     const pagesAdded = result.pages_added || 1;
                     this.updateLoadingMessage(`Added ${pagesAdded} page(s). Refreshing view...`);
 
+                    // Fetch the updated document data
+                    console.log("Fetching updated document data for ID:", docId);
                     const newDocData = await api.fetchDocumentData(docId);
+
+                    console.log("Received updated document data:", newDocData);
+
                     if (!newDocData || !newDocData.pages) {
-                        throw new Error('Retrieved invalid document data after page addition.');
+                        throw new Error('Retrieved invalid document data after page addition. Check server logs.');
                     }
 
                     this.documentData = newDocData;
 
+                    // Go to the newly added page
                     this.currentPageId = this.documentData.pages.length;
                     this.renderThumbnails();
                     this.renderCurrentPage();
@@ -459,24 +509,141 @@ export class DocumentViewer {
         fileInput.click();
     }
 
+    removeCurrentPage() {
+        if (!this.documentData || this.documentData.pages.length <= 1) {
+            alert('Cannot remove the only page in the document.');
+            return;
+        }
 
+        if (!confirm(`Are you sure you want to remove page ${this.currentPageId}?`)) {
+            return;
+        }
+
+        const docId = this.getDocumentId();
+        if (!docId) {
+            alert('Cannot remove page: Missing document ID');
+            return;
+        }
+
+        console.log("Removing page from document ID:", docId);
+
+        api.removePage(docId, this.currentPageId)
+            .then(result => {
+                if (result.success) {
+                    this.documentData.pages = this.documentData.pages.filter(p => p.page_number !== this.currentPageId);
+
+                    this.documentData.pages.forEach((page, idx) => {
+                        page.page_number = idx + 1;
+                    });
+
+                    if (this.currentPageId > this.documentData.pages.length) {
+                        this.currentPageId = this.documentData.pages.length;
+                    }
+
+                    this.renderThumbnails();
+                    this.renderCurrentPage();
+
+                    alert('Page removed successfully!');
+                } else {
+                    throw new Error(result.message || 'Failed to remove page');
+                }
+            })
+            .catch(error => {
+                console.error('Error removing page:', error);
+                alert('Failed to remove page: ' + error.message);
+            });
+    }
+
+    // Add this helper method
     updateLoadingMessage(message) {
         if (this.elements.loadingMessage) {
             this.elements.loadingMessage.textContent = message;
         }
     }
 
+    // Add new method to navigate to a specific PDF page
     navigateToPdfPage(pageNumber) {
         if (!this.documentData || this.documentData.file_type !== 'pdf') {
+            return; // Only apply to PDFs
+        }
+
+        console.log(`Navigating to PDF page ${pageNumber}`);
+
+        // Get the PDF object element
+        const pdfObject = this.elements.currentPageContent.querySelector('object');
+        if (!pdfObject) {
+            console.warn('PDF object not found in DOM');
             return;
         }
-        
-        console.log(`Navigating to PDF page ${pageNumber}`);
-        this.currentPageId = pageNumber;
-        
-        this.renderPdf(pageNumber);
+
+        // Create URL with page fragment
+        const baseUrl = this.documentData.file_url.split('#')[0]; // Remove any existing fragments
+        const newUrl = `${baseUrl}#page=${pageNumber}`;
+
+        // Update the object data attribute to navigate to the page
+        // We need to reload the object to force navigation
+        pdfObject.data = newUrl;
+
+        // If the above doesn't work consistently, try this alternate approach
+        setTimeout(() => {
+            // Sometimes we need to reload the object to force the browser to navigate
+            if (pdfObject.data === newUrl) {
+                pdfObject.data = '';
+                setTimeout(() => {
+                    pdfObject.data = newUrl;
+                }, 50);
+            }
+        }, 100);
     }
 
+    // Add a method to monitor PDF page changes made by the user directly in the PDF viewer
+    monitorPdfPageChange() {
+        // Since we're not using scroll detection, we'll only monitor for hash changes
+        // from navigation initiated by our buttons
+        const pdfObject = document.getElementById('pdf-viewer-object');
+        if (!pdfObject) return;
+
+        // We still monitor hash changes since they could come from our page navigation buttons
+        const checkInterval = setInterval(() => {
+            if (!this.documentData) {
+                clearInterval(checkInterval);
+                return;
+            }
+
+            const objectData = pdfObject.data;
+            if (!objectData) {
+                clearInterval(checkInterval);
+                return;
+            }
+
+            // Extract page number from hash if present
+            if (objectData.includes('#page=')) {
+                const hashPageMatch = objectData.match(/#page=(\d+)/);
+                if (hashPageMatch && hashPageMatch[1]) {
+                    const pdfPageNum = parseInt(hashPageMatch[1], 10);
+
+                    // Only update if it was initiated by our navigation buttons and doesn't match current page
+                    if (pdfPageNum !== this.currentPageId) {
+                        console.log(`PDF navigation detected to page ${pdfPageNum}`);
+                        this.currentPageId = pdfPageNum;
+                        this.updateRightPanel();
+                        this.updateActiveThumbnail();
+                        // Don't call renderCurrentPage() to avoid refreshing the PDF
+                    }
+                }
+            }
+        }, 1000); // Check every second
+
+        // Store the interval ID so we can clear it if needed
+        this.pdfCheckInterval = checkInterval;
+
+        // Clear the interval when the page changes or component unloads
+        document.addEventListener('pageChanged', () => {
+            clearInterval(this.pdfCheckInterval);
+        }, { once: true });
+    }
+
+    // Add cleanup method
     cleanupPdfMonitoring() {
         if (this.pdfCheckInterval) {
             clearInterval(this.pdfCheckInterval);
