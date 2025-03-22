@@ -33,14 +33,17 @@ export class DocumentViewer {
             <button id="add-page-btn" class="text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">
                 <i class="fas fa-plus mr-1"></i> Add Page
             </button>
+            <!-- 
             <button id="remove-page-btn" class="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">
                 <i class="fas fa-trash mr-1"></i> Remove Page
             </button>
+            -->
         `;
         thumbnailsContainer.appendChild(controlsContainer);
         
         controlsContainer.querySelector('#add-page-btn').addEventListener('click', () => this.addNewPage());
-        controlsContainer.querySelector('#remove-page-btn').addEventListener('click', () => this.removeCurrentPage());
+        // Comment out the event listener for remove button
+        // controlsContainer.querySelector('#remove-page-btn').addEventListener('click', () => this.removeCurrentPage());
 
         this.documentData.pages.forEach(page => {
             const pageElement = this.createThumbnail(page);
@@ -57,12 +60,20 @@ export class DocumentViewer {
             pageElement.classList.add('bg-indigo-100', 'border-indigo-300');
         }
 
+        // Calculate preview text
+        const previewText = page.text ? page.text.substring(0, 10) + '...' : 'No text';
+        
+        // Create a more informative thumbnail
         pageElement.innerHTML = `
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
                     <div class="page-number font-semibold mr-1 text-indigo-600">P${page.page_number}</div>
-                    <div class="page-preview text-xs text-gray-500 truncate">${page.text.substring(0, 10)}...</div>
+                    <div class="page-preview text-xs text-gray-500 truncate">${previewText}</div>
                 </div>
+            </div>
+            <div class="text-xs text-gray-400 mt-1">
+                ${page.source ? `Source: ${page.source}` : ''}
+                ${page.word_count ? `Words: ${page.word_count}` : ''}
             </div>
         `;
 
@@ -171,10 +182,13 @@ export class DocumentViewer {
     }
 
     getPDFContentHTML(page) {
+        const isMergedPDF = this.documentData.is_merged || false;
+        const pdfLabel = isMergedPDF ? 'Merged PDF' : 'PDF';
+        
         return `
             <div class="relative mb-1 overflow-auto h-screen">
                 <div class="absolute top-1 left-1 right-1 flex justify-between items-center z-10 bg-white bg-opacity-80 rounded p-1 text-xs">
-                    <p class="text-gray-500 italic">PDF - ${this.documentData.pages.length} pages</p>
+                    <p class="text-gray-500 italic">${pdfLabel} - ${this.documentData.pages.length} pages</p>
                     <a href="${this.documentData.download_url}" download class="text-indigo-600 hover:underline flex items-center">
                         <i class="fas fa-download mr-1"></i> Download
                     </a>
@@ -240,20 +254,37 @@ export class DocumentViewer {
     }
 
     getDocumentId() {
+        // If found an ID, sanitize it to remove path components and invalid URL characters
+        let id = null;
+        
+        // Try each potential ID source
         if (this.documentData.document_id) {
-            return this.documentData.document_id;
+            id = this.documentData.document_id;
         } else if (this.documentData.file_id) {
-            return this.documentData.file_id;
+            id = this.documentData.file_id;
         } else if (this.documentData.id) {
-            return this.documentData.id;
-        }
-
-        if (this.documentData.file_url) {
+            id = this.documentData.id;
+        } else if (this.documentData.file_url) {
+            // Try to extract from URL
             const urlParts = this.documentData.file_url.split('/');
             const fileName = urlParts[urlParts.length - 1];
             if (fileName && fileName.includes('.')) {
-                return fileName.split('.')[0];
+                id = fileName.split('.')[0];
             }
+        }
+        
+        // If we found an ID, sanitize it
+        if (id) {
+            // Remove any path components, keeping only the filename part
+            if (id.includes('\\') || id.includes('/')) {
+                console.log("Sanitizing ID with path separators:", id);
+                // Get just the last part after any slash or backslash
+                const parts = id.split(/[\\\/]/);
+                id = parts[parts.length - 1];
+                console.log("Sanitized ID:", id);
+            }
+            
+            return id;
         }
         
         console.error("Could not find document ID in:", this.documentData);
@@ -276,9 +307,20 @@ export class DocumentViewer {
                         this.elements.loadingMessage.textContent = 'Adding new page...';
                     }
 
+                    // Get the document ID
                     const docId = this.getDocumentId();
+                    console.log("Using document ID for add page:", docId);
+                    
                     if (!docId) {
-                        throw new Error('Missing document ID in current document data');
+                        console.error("Document data:", this.documentData);
+                        throw new Error('Missing document ID in current document data. Check console for details.');
+                    }
+
+                    // Update the loading message to be more descriptive based on file type
+                    if (file.type.includes('pdf')) {
+                        this.updateLoadingMessage('Processing PDF pages...');
+                    } else if (file.type.includes('image')) {
+                        this.updateLoadingMessage('Analyzing image content...');
                     }
 
                     const formData = new FormData();
@@ -286,29 +328,38 @@ export class DocumentViewer {
                     formData.append('documentId', docId);
 
                     console.log("📤 Sending request to /api/add-page with documentId:", docId);
+                    console.log("📤 File being uploaded:", file.name, "Size:", file.size, "Type:", file.type);
 
+                    // Make the API request
                     const result = await api.addPage(formData);
                     console.log("📥 API Response:", result);
 
                     if (!result.success) {
-                        throw new Error(result.error || 'Failed to add page');
+                        throw new Error(result.error || 'Failed to add page - server returned an error');
                     }
 
+                    // Show pages added in loading message
+                    const pagesAdded = result.pages_added || 1;
+                    this.updateLoadingMessage(`Added ${pagesAdded} page(s). Refreshing view...`);
+
+                    // Fetch the updated document data
                     console.log("Fetching updated document data for ID:", docId);
                     const newDocData = await api.fetchDocumentData(docId);
                     
+                    console.log("Received updated document data:", newDocData);
+                    
                     if (!newDocData || !newDocData.pages) {
-                        throw new Error('Retrieved invalid document data after page addition');
+                        throw new Error('Retrieved invalid document data after page addition. Check server logs.');
                     }
                     
                     this.documentData = newDocData;
-                    console.log("Updated document data:", this.documentData);
 
+                    // Go to the newly added page
                     this.currentPageId = this.documentData.pages.length;
                     this.renderThumbnails();
                     this.renderCurrentPage();
 
-                    alert('New page added successfully!');
+                    alert(`New content added successfully! Added ${pagesAdded} page(s).`);
                 } catch (error) {
                     console.error("🚨 Error adding page:", error);
                     alert("Failed to add new page: " + error.message);
@@ -367,5 +418,12 @@ export class DocumentViewer {
                 console.error('Error removing page:', error);
                 alert('Failed to remove page: ' + error.message);
             });
+    }
+
+    // Add this helper method
+    updateLoadingMessage(message) {
+        if (this.elements.loadingMessage) {
+            this.elements.loadingMessage.textContent = message;
+        }
     }
 }
