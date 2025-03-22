@@ -8,8 +8,6 @@ export class DocumentViewer {
 
         this.setupEventListeners();
 
-        // FIX: Only call these once in the constructor
-        this.setupClipboardIntegration();
         this.setupGlobalClipboardListener();
     }
 
@@ -636,76 +634,7 @@ export class DocumentViewer {
         }
     }
 
-    // Keep this method to handle the "floating button" for toggling copy mode
-    setupClipboardIntegration() {
-        // Only create these elements once
-        if (document.getElementById('select-text-button')) {
-            return; // Already created
-        }
 
-        const selectButton = document.createElement('button');
-        selectButton.id = 'select-text-button';
-        selectButton.className = 'fixed bottom-4 right-4 bg-indigo-600 text-white rounded-full p-3 shadow-lg z-50 hover:bg-indigo-700 transition';
-        selectButton.innerHTML = '<i class="fas fa-clipboard"></i>';
-        selectButton.title = 'Select text from PDF';
-        document.body.appendChild(selectButton);
-
-        const statusContainer = document.createElement('div');
-        statusContainer.id = 'selection-status';
-        statusContainer.className = 'fixed bottom-16 right-4 bg-white p-2 rounded shadow-lg z-50 text-sm hidden';
-        statusContainer.innerHTML = 'Select text in the PDF...';
-        document.body.appendChild(statusContainer);
-
-        selectButton.addEventListener('click', async () => {
-            this.toggleSelectionMode();
-        });
-    }
-
-    async toggleSelectionMode() {
-        console.log("toggleSelectionMode called");
-        const statusContainer = document.getElementById('selection-status');
-        const selectButton = document.getElementById('select-text-button');
-
-        if (!selectButton.classList.contains('active')) {
-            // Activate selection mode
-            selectButton.classList.add('active', 'bg-green-600', 'hover:bg-green-700');
-            selectButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
-            statusContainer.classList.remove('hidden');
-            statusContainer.textContent = 'Select text in the PDF, then press Ctrl+C to copy';
-            alert('Please select text in the PDF and press Ctrl+C. Then click this button again to send the text to QA.');
-        } else {
-            // Deactivate selection mode
-            console.log("Deactivating selection mode, fetching text from server...");
-            selectButton.classList.remove('active', 'bg-green-600', 'hover:bg-green-700');
-            selectButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
-            statusContainer.classList.add('hidden');
-
-            try {
-                // We do a "get" here if you want to auto‐paste, or you can skip it
-                // and let the user press "Explain" etc. to finalize the fetch.
-                const response = await fetch('/api/select-text', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'get' })
-                });
-
-                if (!response.ok) throw new Error(`Server returned ${response.status}`);
-                const data = await response.json();
-                console.log("Got text from server:", data);
-
-                if (data.success && data.text) {
-                    // Immediately send to QA, or just store in local var, up to you
-                    this.sendToQATab(data.text);
-                } else {
-                    console.warn("No text found. Did user actually copy (Ctrl+C)?");
-                    alert("No text was found on the server. Make sure you selected text and pressed Ctrl+C.");
-                }
-            } catch (error) {
-                console.error('Error retrieving selected text from server:', error);
-                alert('Failed to retrieve selected text from server');
-            }
-        }
-    }
 
     setupGlobalClipboardListener() {
         console.log("Setting up global clipboard listener");
