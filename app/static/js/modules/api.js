@@ -35,5 +35,22 @@ export const api = {
             body: JSON.stringify({ userNotes: notes })
         });
         return response.json();
+    },
+
+    async addPage(formData) {
+        const response = await fetch('/api/add-page', {
+            method: 'POST',
+            body: formData
+        });
+        return response.json();
+    },
+
+    async removePage(documentId, pageId) {
+        const response = await fetch('/api/remove-page', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ documentId, pageId })
+        });
+        return response.json();
     }
 };
