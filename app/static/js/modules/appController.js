@@ -37,6 +37,8 @@ export class AppController {
     }
 
     handleFileProcessed(documentData, fileId) {
+        console.log(`Processing file with ID: ${fileId}`);
+
         // Hide upload section, show document viewer
         this.elements.uploadSection.classList.add('hidden');
         this.elements.documentViewer.classList.remove('hidden');
@@ -51,6 +53,24 @@ export class AppController {
         // Update study tools with current page data
         if (currentPage) {
             this.studyTools.updateContent(currentPage);
+
+            // Initialize QAHandler with file ID and current page
+            if (this.qaHandler) {
+                console.log("Initializing QAHandler with file and page");
+                this.qaHandler.appController = this; // Ensure appController reference is current
+                this.qaHandler.initializeWithCurrentFile(fileId, currentPage.page_number);
+            }
+
+            // Make sure QA handler is aware of the current page
+            const event = new CustomEvent('pageChanged', {
+                detail: {
+                    page: currentPage,
+                    pageId: String(currentPage.page_number)
+                }
+            });
+            document.dispatchEvent(event);
+
+            console.log("Dispatched pageChanged event for page:", currentPage.page_number);
         }
     }
 

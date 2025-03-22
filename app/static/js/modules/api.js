@@ -7,9 +7,13 @@ export const api = {
         return response.json();
     },
 
-    async analyzeDocument(fileId) {
+    async analyzeDocument(fileId, model = null) {
+        const data = model ? { model } : {};
+
         const response = await fetch(`/api/analyze/${fileId}`, {
-            method: 'POST'
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
         });
         return response.json();
     },
@@ -21,16 +25,26 @@ export const api = {
             fileId = fileId.split(/[\\\/]/).pop();
             console.log('API fetchDocumentData: Using sanitized ID:', fileId);
         }
-        
+
         const response = await fetch(`/api/summaries/${encodeURIComponent(fileId)}`);
         return response.json();
     },
 
-    async askQuestion(question, fileId, pageId) {
+    async askQuestion(question, fileId, pageId, model = null) {
+        const payload = {
+            question,
+            fileId,
+            pageId
+        };
+
+        if (model) {
+            payload.model = model;
+        }
+
         const response = await fetch('/api/ask', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question, fileId, pageId })
+            body: JSON.stringify(payload)
         });
         return response.json();
     },
@@ -44,6 +58,24 @@ export const api = {
         return response.json();
     },
 
+    async getAvailableModels() {
+        try {
+            const response = await fetch('/api/models');
+            if (!response.ok) {
+                throw new Error('Failed to fetch model information');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching models:', error);
+            return {
+                available: false,
+                models: {},
+                default_summary_model: 'gpt-3.5-turbo',
+                default_qa_model: 'gpt-3.5-turbo'
+            };
+        }
+    },
+
     async addPage(formData) {
         try {
             // Check if documentId contains invalid characters
@@ -53,7 +85,7 @@ export const api = {
                 // Sanitize the ID
                 const sanitizedId = docId.split(/[\\\/]/).pop();
                 console.log('API addPage: Using sanitized ID:', sanitizedId);
-                
+
                 // Create a new FormData instance with the sanitized ID
                 const sanitizedFormData = new FormData();
                 for (const [key, value] of formData.entries()) {
@@ -71,13 +103,13 @@ export const api = {
                 method: 'POST',
                 body: formData
             });
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error(`API addPage: Server returned ${response.status}`, errorText);
                 throw new Error(`Server returned ${response.status}: ${errorText}`);
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('API addPage: Fetch error', error);
@@ -96,13 +128,13 @@ export const api = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ documentId, pageId })
             });
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error(`API removePage: Server returned ${response.status}`, errorText);
                 throw new Error(`Server returned ${response.status}: ${errorText}`);
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('API removePage: Fetch error', error);

@@ -3,7 +3,7 @@ import os
 import uuid
 from werkzeug.utils import secure_filename
 from app.utils.file_processor import process_file, process_pdf, process_image, save_processed_data
-from app.utils.document_analyzer import generate_summary, get_answer
+from app.utils.document_analyzer import generate_summary, get_answer, get_available_models
 import glob
 import json
 import tempfile
@@ -286,15 +286,39 @@ def upload_file():
 
 @api.route('/analyze/<file_id>', methods=['POST'])
 def analyze_file(file_id):
-    """Trigger analysis of an uploaded file"""
-    # In a real app, this would check if file exists in database
-    # and start a background job if not already processed
-    
-    # For hackathon, we'll assume the file is already processed in the upload step
-    return jsonify({
-        'status': 'processing',
-        'message': 'Analysis started'
-    }), 200
+    """Analyze a file and generate summaries for its pages"""
+    try:
+        print(f"Analyze request for file: {file_id}")
+        # Get model param from request if provided
+        data = request.get_json() or {}
+        model = data.get('model', None)  # Use default if not specified
+        
+        temp_dir = os.path.join(tempfile.gettempdir(), 'studyflow')
+        file_path = os.path.join(temp_dir, f"{file_id}.json")
+        
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'File not found'}), 404
+            
+        with open(file_path, 'r') as f:
+            file_data = json.load(f)
+            
+        # Generate summaries for each page
+        for page in file_data.get('pages', []):
+            page_text = page.get('text', '')
+            if page_text:
+                # Generate summary using specified or default model
+                page['summary'] = generate_summary(page_text, model=model)
+            else:
+                page['summary'] = "No text content available to summarize."
+                
+        # Save updated data
+        with open(file_path, 'w') as f:
+            json.dump(file_data, f)
+            
+        return jsonify({'status': 'success', 'message': 'Analysis complete'}), 200
+    except Exception as e:
+        print(f"Error analyzing file: {str(e)}")
+        return jsonify({'error': f'Error analyzing file: {str(e)}'}), 500
 
 @api.route('/summaries/<file_id>', methods=['GET'])
 def get_summaries(file_id):
@@ -394,6 +418,7 @@ def ask_question():
     question = data.get('question')
     file_id = data.get('file_id') or data.get('fileId')
     page_id = data.get('page_id') or data.get('pageId')
+    model = data.get('model')  # Optional model selection
     
     print(f"Ask question request data: {data}")
     
@@ -405,13 +430,14 @@ def ask_question():
     
     try:
         # Log the question for debugging
-        print(f"Question asked: '{question}' for file {file_id}, page {page_id}")
+        print(f"Question asked: '{question}' for file {file_id}, page {page_id}, model {model or 'default'}")
         
         # Get answer using the current page for better context
-        answer = get_answer(question, file_id, page_id)
+        answer = get_answer(question, file_id, page_id, model=model)
         
         return jsonify({
-            'answer': answer
+            'answer': answer,
+            'model_used': model
         }), 200
     except Exception as e:
         print(f"Error processing question: {str(e)}")
@@ -483,4 +509,14 @@ def health_check():
     return jsonify({
         'status': 'ok',
         'message': 'API is operational'
-    }), 200 
+    }), 200
+
+@api.route('/models', methods=['GET'])
+def get_models():
+    """Get information about available AI models"""
+    try:
+        model_info = get_available_models()
+        return jsonify(model_info), 200
+    except Exception as e:
+        print(f"Error retrieving model information: {str(e)}")
+        return jsonify({'error': 'Error retrieving model information'}), 500 

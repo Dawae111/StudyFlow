@@ -15,6 +15,32 @@ if openai_available:
         print(f"Error importing OpenAI: {e}")
         openai_available = False
 
+# Define available models with their capabilities and costs
+AI_MODELS = {
+    "gpt-3.5-turbo": {
+        "description": "Fast and cost-effective model for most tasks",
+        "max_tokens": 4000,
+        "cost_per_1k": "$0.002",
+        "use_case": "General purpose, summaries, Q&A"
+    },
+    "gpt-4": {
+        "description": "More advanced reasoning and higher accuracy",
+        "max_tokens": 8000,
+        "cost_per_1k": "$0.03",
+        "use_case": "Complex reasoning, detailed analysis"
+    },
+    "gpt-4-turbo": {
+        "description": "Latest model with enhanced capabilities",
+        "max_tokens": 128000,
+        "cost_per_1k": "$0.01",
+        "use_case": "Most advanced reasoning, analysis of larger documents"
+    }
+}
+
+# Default model selection (can be overridden by environment variable)
+DEFAULT_SUMMARY_MODEL = os.getenv("OPENAI_SUMMARY_MODEL", "gpt-3.5-turbo")
+DEFAULT_QA_MODEL = os.getenv("OPENAI_QA_MODEL", "gpt-4-turbo")
+
 def configure_openai():
     """Configure the OpenAI client with API key and base URL"""
     try:
@@ -37,6 +63,10 @@ def configure_openai():
             # Just get the list of models to verify connectivity
             openai.Model.list()
             print("OpenAI connection successful")
+            
+            # Log available models from our configuration
+            print(f"Available AI models configured: {', '.join(AI_MODELS.keys())}")
+            print(f"Using {DEFAULT_SUMMARY_MODEL} for summaries and {DEFAULT_QA_MODEL} for Q&A")
             return True
         except Exception as e:
             print(f"Error connecting to OpenAI: {str(e)}")
@@ -52,15 +82,20 @@ if openai_available:
     if not openai_configured:
         print("OpenAI configuration failed, will use mock responses")
 
-def generate_summary(text):
+def generate_summary(text, model=None):
     """Generate a summary for a given text using OpenAI
     
     Args:
         text (str): The text to summarize
+        model (str, optional): The model to use. Defaults to DEFAULT_SUMMARY_MODEL.
     
     Returns:
         str: Summary of the text
     """
+    # Use default model if none specified
+    if model is None:
+        model = DEFAULT_SUMMARY_MODEL
+    
     try:
         # Check for error messages in the text
         if text.startswith("[Error"):
@@ -77,29 +112,32 @@ def generate_summary(text):
         
         # Try to use OpenAI directly
         try:
-            # Limit text length to avoid token limits
-            max_tokens = 4000  # Leave room for response tokens
-            if len(text) > max_tokens * 4:  # Rough character to token ratio
-                text = text[:max_tokens * 4]
-                print(f"Text truncated to ~{max_tokens} tokens")
+            # Get the max tokens for the model
+            max_context_tokens = AI_MODELS.get(model, {}).get("max_tokens", 4000)
+            
+            # Limit text length to avoid token limits (allow for 25% of max tokens for response)
+            max_input_tokens = int(max_context_tokens * 0.75)
+            if len(text) > max_input_tokens * 4:  # Rough character to token ratio
+                text = text[:max_input_tokens * 4]
+                print(f"Text truncated to ~{max_input_tokens} tokens for {model}")
             
             # Generate summary using Chat completions API
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model=model,
                 messages=[
-                    {"role": "system", "content": "You are a helpful assistant that creates concise summaries."},
-                    {"role": "user", "content": f"Write a concise summary of the following text in 2-3 sentences:\n\n{text}"}
+                    {"role": "system", "content": "You are a helpful assistant that clarify contents and help user understand contents confusing."},
+                    {"role": "user", "content": f"Explain and clarify concept and ideas of the following text:\n\n{text}"}
                 ],
                 max_tokens=150,
                 temperature=0.3
             )
             
             summary = response.choices[0].message.content.strip()
-            print("Successfully generated summary with OpenAI")
+            print(f"Successfully generated summary with {model}")
             return summary
             
         except Exception as e:
-            print(f"Error with OpenAI summarization: {str(e)}")
+            print(f"Error with OpenAI summarization using {model}: {str(e)}")
             # Fall back to mock if OpenAI fails
             return generate_mock_summary(text)
             
@@ -116,17 +154,22 @@ def generate_mock_summary(text):
     else:
         return "Brief content about " + " ".join(words[0:3]) + ". " + " ".join(words[-3:]) + " are also mentioned."
 
-def get_answer(question, file_id, page_id=None):
+def get_answer(question, file_id, page_id=None, model=None):
     """Get an answer to a question about a document
     
     Args:
         question (str): The question to answer
         file_id (str): The ID of the file to query
         page_id (str, optional): The specific page to query. Defaults to None.
+        model (str, optional): The model to use. Defaults to DEFAULT_QA_MODEL.
     
     Returns:
         str: Answer to the question
     """
+    # Use default model if none specified
+    if model is None:
+        model = DEFAULT_QA_MODEL
+        
     try:
         # Get document data
         doc_data = load_document_data(file_id)
@@ -158,30 +201,33 @@ def get_answer(question, file_id, page_id=None):
         if not context or context.isspace():
             return "No valid text content found to answer your question."
             
-        # Limit context length to avoid token limits
-        max_tokens = 4000
-        if len(context) > max_tokens * 4:
-            context = context[:max_tokens * 4]
-            print(f"Context truncated to ~{max_tokens} tokens")
-        
         # Try to use OpenAI
         if openai_available and openai_configured:
             try:
+                # Get the max tokens for the model
+                max_context_tokens = AI_MODELS.get(model, {}).get("max_tokens", 4000)
+                
+                # Limit context length to avoid token limits (allow for 25% of max tokens for response)
+                max_input_tokens = int(max_context_tokens * 0.75)
+                if len(context) > max_input_tokens * 4:
+                    context = context[:max_input_tokens * 4]
+                    print(f"Context truncated to ~{max_input_tokens} tokens for {model}")
+                
                 # Get answer using Chat completions API
                 response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
+                    model=model,
                     messages=[
-                        {"role": "system", "content": "You are a helpful assistant that answers questions based on the provided document text."},
-                        {"role": "user", "content": f"Based on this content:\n\n{context}\n\nAnswer this question: {question}"}
+                        {"role": "system", "content": "You are a helpful assistant that answers questions based on knowledge you have and also the provided document text."},
+                        {"role": "user", "content": f"Based on knowledge you have and this content:\n\n{context}\n\nAnswer this question: {question}"}
                     ],
-                    max_tokens=200,
+                    max_tokens=int(max_context_tokens * 0.25),  # Reserve 25% of tokens for response
                     temperature=0.5
                 )
                 
                 return response.choices[0].message.content.strip()
                 
             except Exception as e:
-                print(f"Error with OpenAI Q&A: {str(e)}")
+                print(f"Error with OpenAI Q&A using {model}: {str(e)}")
                 return generate_mock_answer(question, file_id, context)
         else:
             print("OpenAI not available or not configured, using mock answer")
@@ -190,6 +236,15 @@ def get_answer(question, file_id, page_id=None):
     except Exception as e:
         print(f"Error getting answer: {str(e)}")
         return "Error processing your question. Please try again."
+
+def get_available_models():
+    """Return information about available models for the UI"""
+    return {
+        "available": openai_available and openai_configured,
+        "models": AI_MODELS,
+        "default_summary_model": DEFAULT_SUMMARY_MODEL,
+        "default_qa_model": DEFAULT_QA_MODEL
+    }
 
 def generate_mock_answer(question, file_id, context):
     """Generate a mock answer when OpenAI is not available"""
