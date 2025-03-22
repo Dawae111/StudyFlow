@@ -49,8 +49,8 @@ export class FileUploadHandler {
             return;
         }
 
-        this.showLoading('Uploading and processing file...');
-        
+        window.showLoading('Uploading and processing file...');
+
         try {
             const formData = new FormData();
             formData.append('file', file);
@@ -62,12 +62,12 @@ export class FileUploadHandler {
 
             this.currentFileId = uploadData.file_id;
             await api.analyzeDocument(this.currentFileId);
-            
-            this.updateLoadingMessage('Processing document...');
+
+            window.updateLoadingMessage('Processing document...');
             setTimeout(() => this.fetchDocumentData(), 2000);
         } catch (error) {
             console.error('Error:', error);
-            this.hideLoading();
+            window.hideLoading();
             alert('An error occurred while uploading the file.');
         }
     }
@@ -75,26 +75,24 @@ export class FileUploadHandler {
     async fetchDocumentData() {
         try {
             const data = await api.fetchDocumentData(this.currentFileId);
-            this.hideLoading();
+            window.hideLoading();
             this.onFileProcessed(data, this.currentFileId);
         } catch (error) {
             console.error('Error:', error);
-            this.hideLoading();
+            window.hideLoading();
             alert('An error occurred while fetching document data.');
         }
     }
 
     showLoading(message) {
-        const { loadingMessage, loadingOverlay } = this.elements;
-        loadingMessage.textContent = message || 'Loading...';
-        loadingOverlay.classList.remove('hidden');
+        window.showLoading(message);
     }
 
     updateLoadingMessage(message) {
-        this.elements.loadingMessage.textContent = message;
+        window.updateLoadingMessage(message);
     }
 
     hideLoading() {
-        this.elements.loadingOverlay.classList.add('hidden');
+        window.hideLoading();
     }
 }

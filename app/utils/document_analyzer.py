@@ -3,42 +3,57 @@ import json
 import tempfile
 import importlib.util
 
-# Check if langchain is installed
-langchain_available = importlib.util.find_spec("langchain") is not None
+# Check if OpenAI is installed
 openai_available = importlib.util.find_spec("openai") is not None
 
 # Only import if available
-if langchain_available and openai_available:
+if openai_available:
     try:
-        from langchain.chains.summarize import load_summarize_chain
-        from langchain.text_splitter import RecursiveCharacterTextSplitter
-        from langchain.llms import OpenAI
-        from langchain.docstore.document import Document
-        from langchain.prompts import PromptTemplate
         import openai
-        print("Successfully imported LangChain and OpenAI")
+        print("Successfully imported OpenAI")
     except ImportError as e:
-        print(f"Error importing LangChain or OpenAI: {e}")
-        langchain_available = False
+        print(f"Error importing OpenAI: {e}")
         openai_available = False
 
-# Setup LLM
-def get_llm():
-    """Get the LLM model to use (OpenAI's GPT model)"""
-    if not langchain_available or not openai_available:
-        print("LangChain or OpenAI not available, returning mock LLM")
-        return None
-        
+def configure_openai():
+    """Configure the OpenAI client with API key and base URL"""
     try:
-        api_key = os.getenv("OPENAI_API_KEY", "your-api-key-here")
+        api_key = os.getenv("OPENAI_API_KEY")
+        api_base = os.getenv("OPENAI_API_BASE")
+        
+        if not api_key:
+            print("No OpenAI API key found in environment")
+            return False
+            
         openai.api_key = api_key
-        return OpenAI(temperature=0, openai_api_key=api_key)
+        
+        # Set the API base URL if provided
+        if api_base:
+            print(f"Using custom API base: {api_base}")
+            openai.api_base = api_base
+        
+        # Test the configuration with a simple request
+        try:
+            # Just get the list of models to verify connectivity
+            openai.Model.list()
+            print("OpenAI connection successful")
+            return True
+        except Exception as e:
+            print(f"Error connecting to OpenAI: {str(e)}")
+            return False
     except Exception as e:
-        print(f"Error creating OpenAI LLM: {e}")
-        return None
+        print(f"Error configuring OpenAI: {str(e)}")
+        return False
+
+# Try to configure OpenAI at module initialization
+openai_configured = False
+if openai_available:
+    openai_configured = configure_openai()
+    if not openai_configured:
+        print("OpenAI configuration failed, will use mock responses")
 
 def generate_summary(text):
-    """Generate a summary for a given text using LangChain
+    """Generate a summary for a given text using OpenAI
     
     Args:
         text (str): The text to summarize
@@ -55,50 +70,37 @@ def generate_summary(text):
         if len(text) < 100:
             return "Text too short to summarize meaningfully."
         
-        # Check if LangChain is available
-        if not langchain_available or not openai_available:
-            print("LangChain or OpenAI not available, using mock summary")
+        # Check if OpenAI is available and configured
+        if not openai_available or not openai_configured:
+            print("OpenAI not available or not configured, using mock summary")
             return generate_mock_summary(text)
         
-        # Try to use OpenAI via LangChain
+        # Try to use OpenAI directly
         try:
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key or api_key == "your-api-key-here":
-                # Fall back to mock summary if no API key
-                print("No valid API key found, using mock summary")
-                return generate_mock_summary(text)
+            # Limit text length to avoid token limits
+            max_tokens = 4000  # Leave room for response tokens
+            if len(text) > max_tokens * 4:  # Rough character to token ratio
+                text = text[:max_tokens * 4]
+                print(f"Text truncated to ~{max_tokens} tokens")
             
-            llm = get_llm()
-            if llm is None:
-                return generate_mock_summary(text)
-                
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=2000,
-                chunk_overlap=200
+            # Generate summary using Chat completions API
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that creates concise summaries."},
+                    {"role": "user", "content": f"Write a concise summary of the following text in 2-3 sentences:\n\n{text}"}
+                ],
+                max_tokens=150,
+                temperature=0.3
             )
             
-            docs = [Document(page_content=t) for t in text_splitter.split_text(text)]
+            summary = response.choices[0].message.content.strip()
+            print("Successfully generated summary with OpenAI")
+            return summary
             
-            # Define the summarization prompt
-            prompt_template = '''
-            Write a concise summary of the following text in 2-3 sentences:
-            "{text}"
-            CONCISE SUMMARY:
-            '''
-            prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
-            
-            # Create and run the summarization chain
-            chain = load_summarize_chain(
-                llm,
-                chain_type="stuff",
-                prompt=prompt
-            )
-            
-            summary = chain.run(docs)
-            return summary.strip()
         except Exception as e:
             print(f"Error with OpenAI summarization: {str(e)}")
-            # Fall back to mock if LangChain fails
+            # Fall back to mock if OpenAI fails
             return generate_mock_summary(text)
             
     except Exception as e:
@@ -132,57 +134,68 @@ def get_answer(question, file_id, page_id=None):
         if not doc_data:
             return "Document not found or not processed yet. Please try uploading again."
         
-        # Get some real content to make answers more relevant
+        # Get relevant content
         pages = doc_data.get('pages', [])
         if not pages:
             return "No content found in this document."
             
-        # Get the content of the specified page or the first few words from each page
-        content_snippets = []
+        # Get the content based on page_id
         if page_id:
-            # Find the specific page
+            # Use the specific page
+            page_content = ""
             for page in pages:
-                if page.get('page_number') == int(page_id):
-                    content_snippets = [page.get('text', '')[:100]]
+                if str(page.get('page_number')) == str(page_id):
+                    page_content = page.get('text', '')
                     break
+            if not page_content:
+                return f"Page {page_id} not found in this document."
+            context = page_content
         else:
-            # Get snippets from all pages
-            for page in pages:
-                text = page.get('text', '')
-                if text and not text.startswith("[Error"):
-                    content_snippets.append(text[:50] + "...")
+            # Use all pages
+            context = "\n\n".join([page.get('text', '') for page in pages if page.get('text')])
+        
+        # Check if there's any valid content
+        if not context or context.isspace():
+            return "No valid text content found to answer your question."
+            
+        # Limit context length to avoid token limits
+        max_tokens = 4000
+        if len(context) > max_tokens * 4:
+            context = context[:max_tokens * 4]
+            print(f"Context truncated to ~{max_tokens} tokens")
         
         # Try to use OpenAI
-        try:
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key or api_key == "your-api-key-here":
-                # Fall back to mock answer if no API key
-                return generate_mock_answer(question, file_id, content_snippets)
+        if openai_available and openai_configured:
+            try:
+                # Get answer using Chat completions API
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant that answers questions based on the provided document text."},
+                        {"role": "user", "content": f"Based on this content:\n\n{context}\n\nAnswer this question: {question}"}
+                    ],
+                    max_tokens=200,
+                    temperature=0.5
+                )
                 
-            context = "\n\n".join([page.get('text', '') for page in pages])
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant that answers questions about documents."},
-                    {"role": "user", "content": f"Based on this content:\n\n{context}\n\nAnswer this question: {question}"}
-                ],
-                max_tokens=150
-            )
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            print(f"Error with OpenAI Q&A: {str(e)}")
-            # Fall back to mock if OpenAI fails
-            return generate_mock_answer(question, file_id, content_snippets)
+                return response.choices[0].message.content.strip()
+                
+            except Exception as e:
+                print(f"Error with OpenAI Q&A: {str(e)}")
+                return generate_mock_answer(question, file_id, context)
+        else:
+            print("OpenAI not available or not configured, using mock answer")
+            return generate_mock_answer(question, file_id, context)
             
     except Exception as e:
         print(f"Error getting answer: {str(e)}")
         return "Error processing your question. Please try again."
 
-def generate_mock_answer(question, file_id, content_snippets):
+def generate_mock_answer(question, file_id, context):
     """Generate a mock answer when OpenAI is not available"""
+    print("Generating mock answer")
     # Use the content to craft a more relevant answer
-    content_text = " ".join(content_snippets)
-    words = content_text.split()
+    words = context.split()[:100]  # Just use first 100 words
     relevant_words = [w for w in words if len(w) > 3][:10]  # Get some relevant words
     
     # Mock response based on the question and content
@@ -193,7 +206,7 @@ def generate_mock_answer(question, file_id, content_snippets):
     elif "why" in question.lower():
         return f"The reasons related to {' and '.join(relevant_words[:2])} are outlined in the document, primarily focusing on {relevant_words[2] if len(relevant_words) > 2 else 'key concepts'} and {relevant_words[3] if len(relevant_words) > 3 else 'related aspects'}."
     else:
-        return f"Based on the document content about {' and '.join(relevant_words[:3])}, the answer relates to the information presented and other sections of the document."
+        return f"Based on the document content about {' and '.join(relevant_words[:3])}, the answer relates to the information presented in the text."
 
 def load_document_data(file_id):
     """Load document data from the temporary storage
