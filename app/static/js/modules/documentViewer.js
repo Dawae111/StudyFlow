@@ -1,3 +1,5 @@
+import { api } from './api.js';
+
 export class DocumentViewer {
     constructor(elements) {
         this.elements = elements;
@@ -25,6 +27,21 @@ export class DocumentViewer {
         thumbnailsContainer.className = 'thumbnails-container overflow-y-auto max-h-[calc(100vh-80px)]';
         pageThumbnails.appendChild(thumbnailsContainer);
 
+        const controlsContainer = document.createElement('div');
+        controlsContainer.className = 'thumbnails-controls p-1 mb-2 flex justify-between items-center';
+        controlsContainer.innerHTML = `
+            <button id="add-page-btn" class="text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                <i class="fas fa-plus mr-1"></i> Add Page
+            </button>
+            <button id="remove-page-btn" class="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+                <i class="fas fa-trash mr-1"></i> Remove Page
+            </button>
+        `;
+        thumbnailsContainer.appendChild(controlsContainer);
+        
+        controlsContainer.querySelector('#add-page-btn').addEventListener('click', () => this.addNewPage());
+        controlsContainer.querySelector('#remove-page-btn').addEventListener('click', () => this.removeCurrentPage());
+
         this.documentData.pages.forEach(page => {
             const pageElement = this.createThumbnail(page);
             thumbnailsContainer.appendChild(pageElement);
@@ -41,9 +58,11 @@ export class DocumentViewer {
         }
 
         pageElement.innerHTML = `
-            <div class="flex items-center">
-                <div class="page-number font-semibold mr-1 text-indigo-600">P${page.page_number}</div>
-                <div class="page-preview text-xs text-gray-500 truncate">${page.text.substring(0, 10)}...</div>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="page-number font-semibold mr-1 text-indigo-600">P${page.page_number}</div>
+                    <div class="page-preview text-xs text-gray-500 truncate">${page.text.substring(0, 10)}...</div>
+                </div>
             </div>
         `;
 
@@ -218,5 +237,135 @@ export class DocumentViewer {
 
         const event = new CustomEvent('pageChanged', { detail: { page } });
         document.dispatchEvent(event);
+    }
+
+    getDocumentId() {
+        if (this.documentData.document_id) {
+            return this.documentData.document_id;
+        } else if (this.documentData.file_id) {
+            return this.documentData.file_id;
+        } else if (this.documentData.id) {
+            return this.documentData.id;
+        }
+
+        if (this.documentData.file_url) {
+            const urlParts = this.documentData.file_url.split('/');
+            const fileName = urlParts[urlParts.length - 1];
+            if (fileName && fileName.includes('.')) {
+                return fileName.split('.')[0];
+            }
+        }
+        
+        console.error("Could not find document ID in:", this.documentData);
+        return null;
+    }
+
+    async addNewPage() {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'application/pdf,image/jpeg,image/png,image/jpg';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+        
+        fileInput.addEventListener('change', async (e) => {
+            if (fileInput.files.length) {
+                const file = fileInput.files[0];
+                try {
+                    if (this.elements.loadingOverlay && this.elements.loadingMessage) {
+                        this.elements.loadingOverlay.classList.remove('hidden');
+                        this.elements.loadingMessage.textContent = 'Adding new page...';
+                    }
+
+                    const docId = this.getDocumentId();
+                    if (!docId) {
+                        throw new Error('Missing document ID in current document data');
+                    }
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('documentId', docId);
+
+                    console.log("📤 Sending request to /api/add-page with documentId:", docId);
+
+                    const result = await api.addPage(formData);
+                    console.log("📥 API Response:", result);
+
+                    if (!result.success) {
+                        throw new Error(result.error || 'Failed to add page');
+                    }
+
+                    console.log("Fetching updated document data for ID:", docId);
+                    const newDocData = await api.fetchDocumentData(docId);
+                    
+                    if (!newDocData || !newDocData.pages) {
+                        throw new Error('Retrieved invalid document data after page addition');
+                    }
+                    
+                    this.documentData = newDocData;
+                    console.log("Updated document data:", this.documentData);
+
+                    this.currentPageId = this.documentData.pages.length;
+                    this.renderThumbnails();
+                    this.renderCurrentPage();
+
+                    alert('New page added successfully!');
+                } catch (error) {
+                    console.error("🚨 Error adding page:", error);
+                    alert("Failed to add new page: " + error.message);
+                } finally {
+                    if (this.elements.loadingOverlay) {
+                        this.elements.loadingOverlay.classList.add('hidden');
+                    }
+                    document.body.removeChild(fileInput);
+                }
+            }
+        });
+    
+        fileInput.click();
+    }
+    
+    removeCurrentPage() {
+        if (!this.documentData || this.documentData.pages.length <= 1) {
+            alert('Cannot remove the only page in the document.');
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to remove page ${this.currentPageId}?`)) {
+            return;
+        }
+        
+        const docId = this.getDocumentId();
+        if (!docId) {
+            alert('Cannot remove page: Missing document ID');
+            return;
+        }
+        
+        console.log("Removing page from document ID:", docId);
+        
+        api.removePage(docId, this.currentPageId)
+            .then(result => {
+                if (result.success) {
+                    this.documentData.pages = this.documentData.pages.filter(p => p.page_number !== this.currentPageId);
+                    
+                    this.documentData.pages.forEach((page, idx) => {
+                        page.page_number = idx + 1;
+                    });
+                    
+                    if (this.currentPageId > this.documentData.pages.length) {
+                        this.currentPageId = this.documentData.pages.length;
+                    }
+                    
+                    this.renderThumbnails();
+                    this.renderCurrentPage();
+                    
+                    alert('Page removed successfully!');
+                } else {
+                    throw new Error(result.message || 'Failed to remove page');
+                }
+            })
+            .catch(error => {
+                console.error('Error removing page:', error);
+                alert('Failed to remove page: ' + error.message);
+            });
     }
 }

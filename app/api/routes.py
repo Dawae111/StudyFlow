@@ -5,6 +5,8 @@ from werkzeug.utils import secure_filename
 from app.utils.file_processor import process_file, save_processed_data
 from app.utils.document_analyzer import generate_summary, get_answer
 import glob
+import json
+import tempfile
 
 api = Blueprint('api', __name__)
 
@@ -13,6 +15,138 @@ ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+
+@api.route('/add-page', methods=['POST'])
+def add_page():
+    """Handles adding a new page to an existing document"""
+    try:
+        if 'file' not in request.files:
+            print("ERROR: No file part in request")
+            return jsonify({'error': 'No file part'}), 400
+        
+        file = request.files['file']
+        document_id = request.form.get('documentId')
+
+        if not document_id:
+            print("ERROR: Missing document ID")
+            return jsonify({'error': 'Missing document ID'}), 400
+
+        if file.filename == '':
+            print("ERROR: No selected file")
+            return jsonify({'error': 'No selected file'}), 400
+        
+        if file and allowed_file(file.filename):
+            # Generate a unique filename for the new page
+            original_filename = secure_filename(file.filename)
+            file_ext = original_filename.rsplit('.', 1)[1].lower()
+            unique_filename = f"{str(uuid.uuid4())}.{file_ext}"
+
+            # Save the file in the upload directory
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
+            print(f"Saving new page file to: {file_path}")
+            file.save(file_path)
+
+            # Load existing document data
+            temp_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'studyflow')
+            # Ensure the directory exists
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            document_file = os.path.join(temp_dir, f"{document_id}.json")
+
+            if not os.path.exists(document_file):
+                print(f"Document file not found at {document_file}, checking temp directory...")
+                # Try alternate location (temp directory)
+                temp_dir_alt = os.path.join(tempfile.gettempdir(), 'studyflow')
+                os.makedirs(temp_dir_alt, exist_ok=True)
+                document_file = os.path.join(temp_dir_alt, f"{document_id}.json")
+                
+                if not os.path.exists(document_file):
+                    print(f"ERROR: Document file not found at alternate location either!")
+                    return jsonify({'error': 'Document not found'}), 404
+
+            print(f"Loading document from: {document_file}")
+            with open(document_file, 'r') as f:
+                document_data = json.load(f)
+
+            # Generate new page number
+            new_page_number = len(document_data['pages']) + 1
+
+            # Process file (extract text, generate summary, etc.)
+            # In a real app, you'd do proper text extraction and summary generation here
+            new_page = {
+                'page_number': new_page_number,
+                'text': f'Sample extracted text for new page {new_page_number} from {original_filename}...',
+                'summary': f'This is an AI-generated summary of page {new_page_number}.',
+                'notes': ''
+            }
+            document_data['pages'].append(new_page)
+
+            # Save updated document data
+            print(f"Saving updated document to: {document_file}")
+            with open(document_file, 'w') as f:
+                json.dump(document_data, f)
+
+            print(f"Page {new_page_number} successfully added to document {document_id}")
+            return jsonify({
+                'message': 'New page added successfully',
+                'success': True,
+                'document_id': document_id
+            }), 200
+
+        print("ERROR: Invalid file type")
+        return jsonify({'error': 'Invalid file type'}), 400
+
+    except Exception as e:
+        import traceback
+        print(f"SERVER ERROR in add_page: {str(e)}")
+        print(traceback.format_exc())  # Print stack trace for debugging
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+
+
+@api.route('/remove-page', methods=['POST'])
+def remove_page():
+    """Handles removing a page from an existing document"""
+    try:
+        data = request.json
+        document_id = data.get('documentId')
+        page_id = int(data.get('pageId', 0))
+
+        if not document_id or page_id <= 0:
+            return jsonify({'error': 'Invalid document ID or page number'}), 400
+
+        # Load document data
+        temp_dir = os.path.join(os.path.join(current_app.config['UPLOAD_FOLDER'], 'studyflow'))
+        document_file = os.path.join(temp_dir, f"{document_id}.json")
+
+        if not os.path.exists(document_file):
+            return jsonify({'error': 'Document not found'}), 404
+
+        with open(document_file, 'r') as f:
+            document_data = json.load(f)
+
+        # Filter out the page to be removed
+        document_data['pages'] = [p for p in document_data['pages'] if p['page_number'] != page_id]
+
+        # Reorder remaining pages
+        for index, page in enumerate(document_data['pages']):
+            page['page_number'] = index + 1
+
+        # Save the updated document
+        with open(document_file, 'w') as f:
+            json.dump(document_data, f)
+
+        return jsonify({
+            'message': 'Page removed successfully',
+            'success': True,
+            'document_id': document_id
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+    
+    
 @api.route('/upload', methods=['POST'])
 def upload_file():
     """Handle file upload and initial processing"""
@@ -193,4 +327,47 @@ def update_notes(page_id):
     return jsonify({
         'status': 'success',
         'message': 'Notes updated successfully'
-    }), 200 
+    }), 200
+
+@api.route('/debug/document/<file_id>', methods=['GET'])
+def debug_document(file_id):
+    """Debug endpoint to check document data"""
+    import json
+    import os
+    import tempfile
+    
+    response_data = {
+        'file_id': file_id,
+        'locations_checked': [],
+        'document_found': False,
+        'document_data': None
+    }
+    
+    # Check uploads/studyflow location
+    upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'studyflow')
+    file_path1 = os.path.join(upload_dir, f"{file_id}.json")
+    response_data['locations_checked'].append({
+        'path': file_path1,
+        'exists': os.path.exists(file_path1)
+    })
+    
+    # Check temp/studyflow location
+    temp_dir = os.path.join(tempfile.gettempdir(), 'studyflow')
+    file_path2 = os.path.join(temp_dir, f"{file_id}.json")
+    response_data['locations_checked'].append({
+        'path': file_path2,
+        'exists': os.path.exists(file_path2)
+    })
+    
+    # Load file if found
+    for location in response_data['locations_checked']:
+        if location['exists']:
+            try:
+                with open(location['path'], 'r') as f:
+                    response_data['document_data'] = json.load(f)
+                    response_data['document_found'] = True
+                    break
+            except Exception as e:
+                location['error'] = str(e)
+    
+    return jsonify(response_data) 
