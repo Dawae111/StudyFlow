@@ -11,16 +11,24 @@ export class StudyTools {
     initializeEventListeners() {
         const { tabSummary, tabQA, tabNotes, askButton, questionInput, saveNotesButton } = this.elements;
 
+        // Tab switching
         tabSummary.addEventListener('click', () => this.switchTab('summary'));
         tabQA.addEventListener('click', () => this.switchTab('qa'));
         tabNotes.addEventListener('click', () => this.switchTab('notes'));
 
+        // Q&A functionality
         askButton.addEventListener('click', () => this.askQuestion());
         questionInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.askQuestion();
         });
 
+        // Notes functionality
         saveNotesButton.addEventListener('click', () => this.saveNotes());
+
+        // Listen for page changes
+        document.addEventListener('pageChanged', (e) => {
+            this.updateContent(e.detail.page);
+        });
     }
 
     setFileId(fileId) {
@@ -31,42 +39,56 @@ export class StudyTools {
         this.currentPageId = pageId;
     }
 
+    updateContent(page) {
+        this.updateSummary(page.summary);
+        this.updateNotes(page.notes);
+    }
+
     switchTab(tab) {
-        const { summaryContent, qaContent, notesContent, tabSummary, tabQA, tabNotes } = this.elements;
+        const contents = {
+            summary: this.elements.summaryContent,
+            qa: this.elements.qaContent,
+            notes: this.elements.notesContent
+        };
 
-        // Hide all content
-        [summaryContent, qaContent, notesContent].forEach(content => 
-            content.classList.add('hidden')
-        );
+        const tabs = {
+            summary: this.elements.tabSummary,
+            qa: this.elements.tabQA,
+            notes: this.elements.tabNotes
+        };
 
-        // Reset tab styles
-        [tabSummary, tabQA, tabNotes].forEach(tab => {
+        Object.values(contents).forEach(content => content.classList.add('hidden'));
+        Object.values(tabs).forEach(tab => {
             tab.classList.remove('bg-indigo-600', 'text-white');
             tab.classList.add('bg-gray-200', 'text-gray-700');
         });
 
-        // Show selected content and highlight tab
-        const contentMap = {
-            summary: { content: summaryContent, tab: tabSummary },
-            qa: { content: qaContent, tab: tabQA },
-            notes: { content: notesContent, tab: tabNotes }
-        };
+        contents[tab].classList.remove('hidden');
+        tabs[tab].classList.remove('bg-gray-200', 'text-gray-700');
+        tabs[tab].classList.add('bg-indigo-600', 'text-white');
+    }
 
-        const selected = contentMap[tab];
-        selected.content.classList.remove('hidden');
-        selected.tab.classList.remove('bg-gray-200', 'text-gray-700');
-        selected.tab.classList.add('bg-indigo-600', 'text-white');
+    updateSummary(summary) {
+        this.elements.summaryContent.innerHTML = `
+            <div class="p-4 bg-indigo-50 rounded-lg">
+                <h4 class="font-semibold mb-2">Summary</h4>
+                <p>${summary}</p>
+            </div>
+        `;
+    }
+
+    updateNotes(notes) {
+        this.elements.notesTextarea.value = notes || '';
     }
 
     async askQuestion() {
-        const { questionInput, qaHistory } = this.elements;
-        const question = questionInput.value.trim();
+        const question = this.elements.questionInput.value.trim();
         if (!question) return;
 
         const questionEl = this.createQuestionElement(question);
-        qaHistory.appendChild(questionEl);
-        questionInput.value = '';
-        qaHistory.scrollTop = qaHistory.scrollHeight;
+        this.elements.qaHistory.appendChild(questionEl);
+        this.elements.questionInput.value = '';
+        this.elements.qaHistory.scrollTop = this.elements.qaHistory.scrollHeight;
 
         try {
             const data = await api.askQuestion(question, this.currentFileId, this.currentPageId);
@@ -113,20 +135,21 @@ export class StudyTools {
     }
 
     async saveNotes() {
-        const { notesTextarea, saveNotesButton } = this.elements;
-        const notes = notesTextarea.value.trim();
+        const notes = this.elements.notesTextarea.value.trim();
 
         try {
             await api.saveNotes(this.currentPageId, notes);
-            this.showSaveSuccess(saveNotesButton);
+            this.showSaveSuccess();
         } catch (error) {
             console.error('Error:', error);
             alert('An error occurred while saving your notes.');
         }
     }
 
-    showSaveSuccess(saveBtn) {
+    showSaveSuccess() {
+        const saveBtn = this.elements.saveNotesButton;
         const originalText = saveBtn.textContent;
+
         saveBtn.textContent = 'Saved!';
         saveBtn.classList.add('bg-green-600');
 
@@ -134,18 +157,5 @@ export class StudyTools {
             saveBtn.textContent = originalText;
             saveBtn.classList.remove('bg-green-600');
         }, 2000);
-    }
-
-    updateSummary(summary) {
-        this.elements.summaryContent.innerHTML = `
-            <div class="p-4 bg-indigo-50 rounded-lg">
-                <h4 class="font-semibold mb-2">Summary</h4>
-                <p>${summary}</p>
-            </div>
-        `;
-    }
-
-    updateNotes(notes) {
-        this.elements.notesTextarea.value = notes || '';
     }
 }

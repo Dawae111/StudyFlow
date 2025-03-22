@@ -41,8 +41,7 @@ document.addEventListener('DOMContentLoaded', function () {
         studyTools.setFileId(fileId);
         
         if (currentPage) {
-            studyTools.updateSummary(currentPage.summary);
-            studyTools.updateNotes(currentPage.notes);
+            studyTools.updateContent(currentPage);
         }
     });
 
@@ -300,7 +299,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 currentPageContent.innerHTML = `
                     <div class="overflow-auto max-h-[calc(100vh-90px)]">
                         <p class="text-gray-500 italic mb-2">Unsupported File Type</p>
-                        <div class="text-sm whitespace-pre-wrap">${page.text}</div>
+                    <div class="text-sm whitespace-pre-wrap">${page.text}</div>
                     </div>
                 `;
             }
@@ -308,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // No file info, just show text
             currentPageContent.innerHTML = `
                 <div class="overflow-auto max-h-[calc(100vh-90px)]">
-                    <div class="text-sm whitespace-pre-wrap">${page.text}</div>
+                <div class="text-sm whitespace-pre-wrap">${page.text}</div>
                 </div>
             `;
         }
