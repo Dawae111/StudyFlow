@@ -4,7 +4,7 @@ import uuid
 from werkzeug.utils import secure_filename
 from app.utils.file_processor import process_file, process_pdf, process_image, save_processed_data
 from app.utils.document_analyzer import generate_summary, get_answer, get_available_models, validate_model_name, DEFAULT_QA_MODEL
-from app.utils.gcs_utils import upload_file_to_gcs
+from app.utils.gcs_utils import upload_file_to_gcs, list_files_in_bucket
 import glob
 import json
 import tempfile
