@@ -10,10 +10,12 @@ export class DocumentViewer {
 
     setupEventListeners() {
         document.addEventListener('keydown', (e) => this.handleKeyboardNavigation(e));
-        this.elements.currentPageContent.addEventListener('scroll', (e) => this.handleDocumentScroll(e));
     }
 
     renderDocument(documentData) {
+        // Clean up any existing PDF monitoring
+        this.cleanupPdfMonitoring();
+
         this.documentData = documentData;
         this.renderThumbnails();
         return this.renderCurrentPage();
@@ -81,30 +83,12 @@ export class DocumentViewer {
             this.currentPageId = page.page_number;
             this.renderCurrentPage();
             this.updateActiveThumbnail();
+
+            // Navigate to the corresponding PDF page
+            this.navigateToPdfPage(page.page_number);
         });
 
         return pageElement;
-    }
-
-    handleDocumentScroll(e) {
-        if (!this.documentData || this.documentData.pages.length <= 1 ||
-            this.documentData.file_type !== 'pdf' || !this.elements.currentPageContent.querySelector('.pdf-container')) {
-            return;
-        }
-
-        const pdfContainer = this.elements.currentPageContent.querySelector('.pdf-container');
-        const containerHeight = pdfContainer.clientHeight;
-        const scrollTop = this.elements.currentPageContent.scrollTop;
-        const scrollPosition = scrollTop / (pdfContainer.scrollHeight - containerHeight);
-
-        const totalPages = this.documentData.pages.length;
-        const newPageId = Math.max(1, Math.min(totalPages, Math.ceil(scrollPosition * totalPages)));
-
-        if (newPageId !== this.currentPageId) {
-            this.currentPageId = newPageId;
-            this.updateRightPanel();
-            this.updateActiveThumbnail();
-        }
     }
 
     handleKeyboardNavigation(e) {
@@ -115,12 +99,14 @@ export class DocumentViewer {
                 this.currentPageId++;
                 this.renderCurrentPage();
                 this.updateActiveThumbnail();
+                this.navigateToPdfPage(this.currentPageId);
             }
         } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
             if (this.currentPageId > 1) {
                 this.currentPageId--;
                 this.renderCurrentPage();
                 this.updateActiveThumbnail();
+                this.navigateToPdfPage(this.currentPageId);
             }
         }
     }
@@ -150,6 +136,12 @@ export class DocumentViewer {
         this.updateRightPanel();
 
         console.log(`DocumentViewer rendered page ${this.currentPageId}`);
+
+
+        // Add an event listener for the PDF object if it's a PDF
+        if (this.documentData.file_type === 'pdf') {
+            this.monitorPdfPageChange();
+        }
 
         return page;
     }
@@ -193,6 +185,10 @@ export class DocumentViewer {
         const totalPages = this.documentData.pages.length;
         const currentPage = page.page_number;
 
+
+        // Create URL with page fragment for initial load
+        const pdfUrl = `${this.documentData.file_url.split('#')[0]}#page=${page.page_number}`;
+
         return `
             <div class="relative mb-1 overflow-auto h-screen">
                 <div class="absolute top-1 left-1 right-1 flex justify-between items-center z-20 bg-white bg-opacity-95 shadow-sm rounded p-2 text-xs">
@@ -213,11 +209,11 @@ export class DocumentViewer {
                 </div>
                 
                 <div class="pdf-container h-screen">
-                    <object data="${this.documentData.file_url}" 
+                    <object id="pdf-viewer-object" data="${pdfUrl}" 
                         type="application/pdf" width="100%" height="100%" class="border rounded h-screen">
                         <div class="p-4 bg-gray-100 rounded">
                             <p>It seems your browser doesn't support embedded PDFs.</p>
-                            <a href="${this.documentData.file_url}" target="_blank" class="text-indigo-600 hover:underline">
+                            <a href="${pdfUrl}" target="_blank" class="text-indigo-600 hover:underline">
                                 <i class="fas fa-external-link-alt mr-1"></i> Open PDF in new tab
                             </a>
                         </div>
@@ -291,6 +287,7 @@ export class DocumentViewer {
                     this.currentPageId--;
                     this.renderCurrentPage();
                     this.updateActiveThumbnail();
+                    this.navigateToPdfPage(this.currentPageId);
                 }
             };
 
@@ -300,6 +297,7 @@ export class DocumentViewer {
                     this.currentPageId++;
                     this.renderCurrentPage();
                     this.updateActiveThumbnail();
+                    this.navigateToPdfPage(this.currentPageId);
                 }
             };
 
@@ -328,6 +326,7 @@ export class DocumentViewer {
                         this.currentPageId = selectedPage;
                         this.renderCurrentPage();
                         this.updateActiveThumbnail();
+                        this.navigateToPdfPage(selectedPage);
                     }
                 });
             }
@@ -520,6 +519,172 @@ export class DocumentViewer {
     updateLoadingMessage(message) {
         if (this.elements.loadingMessage) {
             this.elements.loadingMessage.textContent = message;
+        }
+    }
+
+    // Add new method to navigate to a specific PDF page
+    navigateToPdfPage(pageNumber) {
+        if (!this.documentData || this.documentData.file_type !== 'pdf') {
+            return; // Only apply to PDFs
+        }
+
+        console.log(`Navigating to PDF page ${pageNumber}`);
+
+        // Get the PDF object element
+        const pdfObject = this.elements.currentPageContent.querySelector('object');
+        if (!pdfObject) {
+            console.warn('PDF object not found in DOM');
+            return;
+        }
+
+        // Create URL with page fragment
+        const baseUrl = this.documentData.file_url.split('#')[0]; // Remove any existing fragments
+        const newUrl = `${baseUrl}#page=${pageNumber}`;
+
+        // Update the object data attribute to navigate to the page
+        // We need to reload the object to force navigation
+        pdfObject.data = newUrl;
+
+        // If the above doesn't work consistently, try this alternate approach
+        setTimeout(() => {
+            // Sometimes we need to reload the object to force the browser to navigate
+            if (pdfObject.data === newUrl) {
+                pdfObject.data = '';
+                setTimeout(() => {
+                    pdfObject.data = newUrl;
+                }, 50);
+            }
+        }, 100);
+    }
+
+    // Add a method to monitor PDF page changes made by the user directly in the PDF viewer
+    monitorPdfPageChange() {
+        // Since we're not using scroll detection, we'll only monitor for hash changes
+        // from navigation initiated by our buttons
+        const pdfObject = document.getElementById('pdf-viewer-object');
+        if (!pdfObject) return;
+
+        // We still monitor hash changes since they could come from our page navigation buttons
+        const checkInterval = setInterval(() => {
+            if (!this.documentData) {
+                clearInterval(checkInterval);
+                return;
+            }
+
+            const objectData = pdfObject.data;
+            if (!objectData) {
+                clearInterval(checkInterval);
+                return;
+            }
+
+            // Extract page number from hash if present
+            if (objectData.includes('#page=')) {
+                const hashPageMatch = objectData.match(/#page=(\d+)/);
+                if (hashPageMatch && hashPageMatch[1]) {
+                    const pdfPageNum = parseInt(hashPageMatch[1], 10);
+
+                    // Only update if it was initiated by our navigation buttons and doesn't match current page
+                    if (pdfPageNum !== this.currentPageId) {
+                        console.log(`PDF navigation detected to page ${pdfPageNum}`);
+                        this.currentPageId = pdfPageNum;
+                        this.updateRightPanel();
+                        this.updateActiveThumbnail();
+                        // Don't call renderCurrentPage() to avoid refreshing the PDF
+                    }
+                }
+            }
+        }, 1000); // Check every second
+
+        // Store the interval ID so we can clear it if needed
+        this.pdfCheckInterval = checkInterval;
+
+        // Clear the interval when the page changes or component unloads
+        document.addEventListener('pageChanged', () => {
+            clearInterval(this.pdfCheckInterval);
+        }, { once: true });
+    }
+
+    // Add cleanup method
+    cleanupPdfMonitoring() {
+        if (this.pdfCheckInterval) {
+            clearInterval(this.pdfCheckInterval);
+            this.pdfCheckInterval = null;
+        }
+    }
+
+    // Add this method to load a PDF using PDF.js
+    async loadPdfWithPdfJS(url, pageNumber) {
+        // Make sure PDF.js is loaded
+        if (!window.pdfjsLib) {
+            console.error('PDF.js library not loaded');
+            return;
+        }
+
+        try {
+            // Load the PDF document
+            const loadingTask = window.pdfjsLib.getDocument(url);
+            const pdf = await loadingTask.promise;
+
+            // Store the PDF document reference
+            this.pdfDoc = pdf;
+
+            // Render the specified page
+            this.renderPdfPage(pageNumber || 1);
+
+            console.log(`PDF loaded with ${pdf.numPages} pages`);
+        } catch (error) {
+            console.error('Error loading PDF with PDF.js:', error);
+        }
+    }
+
+    // Method to render a specific PDF page
+    async renderPdfPage(pageNumber) {
+        if (!this.pdfDoc) return;
+
+        // Make sure page number is valid
+        const pageNum = Math.max(1, Math.min(pageNumber, this.pdfDoc.numPages));
+
+        try {
+            // Get the page
+            const page = await this.pdfDoc.getPage(pageNum);
+
+            // Get the PDF container element
+            const container = document.querySelector('.pdf-container');
+            if (!container) return;
+
+            // Clear the container
+            container.innerHTML = '<canvas id="pdf-canvas"></canvas>';
+
+            // Get the canvas element
+            const canvas = document.getElementById('pdf-canvas');
+            const context = canvas.getContext('2d');
+
+            // Calculate the scale to fit the container
+            const viewport = page.getViewport({ scale: 1 });
+            const containerWidth = container.clientWidth;
+            const scale = containerWidth / viewport.width;
+            const scaledViewport = page.getViewport({ scale });
+
+            // Set canvas dimensions to match the viewport
+            canvas.width = scaledViewport.width;
+            canvas.height = scaledViewport.height;
+
+            // Render the page
+            const renderContext = {
+                canvasContext: context,
+                viewport: scaledViewport
+            };
+
+            await page.render(renderContext).promise;
+
+            // Update the current page ID
+            this.currentPageId = pageNum;
+            this.updateActiveThumbnail();
+            this.updateRightPanel();
+
+            console.log(`Rendered PDF page ${pageNum}`);
+        } catch (error) {
+            console.error('Error rendering PDF page:', error);
         }
     }
 }

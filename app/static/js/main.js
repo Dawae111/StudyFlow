@@ -31,4 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize the app controller
     const app = new AppController(elements);
     app.init();
+
+    // Expose the app controller for testing/debugging
+    window.appController = app;
 }); 
