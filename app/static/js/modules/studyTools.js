@@ -562,6 +562,17 @@ export class StudyTools {
             if (pageNumber === this.currentPageId) {
                 console.log(`StudyTools: Updating UI for current page ${pageNumber}`);
                 this.updateSummary(page.summary);
+                
+                // Animate the summary box to draw attention to updated content
+                const summaryTextContainer = this.elements.summaryContent.querySelector('.summary-text');
+                if (summaryTextContainer) {
+                    // Add a subtle flash effect to indicate new content
+                    summaryTextContainer.classList.add('bg-indigo-100');
+                    setTimeout(() => {
+                        summaryTextContainer.classList.remove('bg-indigo-100');
+                        summaryTextContainer.classList.add('bg-indigo-50');
+                    }, 1500);
+                }
             }
         });
     }
