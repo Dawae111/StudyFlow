@@ -295,23 +295,16 @@ export class QAHandler {
         // Create a more compact model selector dropdown like OpenAI's UI
         const selectorContainer = document.createElement('div');
         selectorContainer.className = 'model-selector-container mb-2 relative';
+        selectorContainer.id = 'model-selector';
 
         // Create a dropdown button that shows the current model
         const buttonHTML = `
             <button id="model-dropdown-btn" class="flex items-center justify-between w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold px-3 py-2 rounded text-sm">
-                <span id="current-model-name">${this.selectedModel}</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <span id="current-model-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${this.selectedModel}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
             </button>
-            <div id="model-dropdown-content" class="hidden absolute bottom-full left-0 right-0 z-50 mb-2 bg-white shadow-lg rounded-md border border-gray-200 py-1 max-h-48 overflow-y-auto">
-                ${Object.keys(this.models).map(model => `
-                    <div class="model-option cursor-pointer p-2 hover:bg-gray-100 ${model === this.selectedModel ? 'selected' : ''}" data-model="${model}">
-                        <div class="font-medium">${model}</div>
-                        <div class="text-xs text-gray-500">${this.models[model].description}</div>
-                    </div>
-                `).join('')}
-            </div>
         `;
 
         selectorContainer.innerHTML = buttonHTML;
@@ -320,54 +313,124 @@ export class QAHandler {
         const qaContainer = this.elements.questionInput.parentElement;
         qaContainer.insertBefore(selectorContainer, this.elements.questionInput);
 
-        // Add event listeners for dropdown functionality
-        const dropdownBtn = document.getElementById('model-dropdown-btn');
-        const dropdownContent = document.getElementById('model-dropdown-content');
+        // Create floating menu and add it directly to the body
+        const floatingMenu = document.createElement('div');
+        floatingMenu.id = 'model-floating-menu';
+        floatingMenu.style.cssText = `
+            position: fixed;
+            display: none;
+            background: white;
+            border: 2px solid #4F46E5;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 999999;
+            width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 8px 0;
+        `;
 
-        // Toggle dropdown when button is clicked
+        // Add title to the menu
+        const menuTitle = document.createElement('div');
+        menuTitle.style.cssText = `
+            padding: 8px 12px;
+            font-weight: bold;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 8px;
+            color: #4F46E5;
+        `;
+        menuTitle.textContent = 'Select Model';
+        floatingMenu.appendChild(menuTitle);
+
+        // Add the options
+        Object.keys(this.models).forEach(model => {
+            const option = document.createElement('div');
+            option.className = 'model-option';
+            option.dataset.model = model;
+            option.style.cssText = `
+                padding: 10px 16px;
+                cursor: pointer;
+                transition: background-color 0.2s;
+                display: flex;
+                flex-direction: column;
+            `;
+
+            if (model === this.selectedModel) {
+                option.style.backgroundColor = '#EEF2FF';
+                option.style.borderLeft = '4px solid #4F46E5';
+            }
+
+            const modelName = document.createElement('div');
+            modelName.style.fontWeight = 'bold';
+            modelName.textContent = model;
+            option.appendChild(modelName);
+
+            const modelDesc = document.createElement('div');
+            modelDesc.style.cssText = 'font-size: 12px; color: #6B7280;';
+            modelDesc.textContent = this.models[model].description;
+            option.appendChild(modelDesc);
+
+            option.addEventListener('mouseover', () => {
+                option.style.backgroundColor = model === this.selectedModel ? '#EEF2FF' : '#F9FAFB';
+            });
+
+            option.addEventListener('mouseout', () => {
+                option.style.backgroundColor = model === this.selectedModel ? '#EEF2FF' : '';
+            });
+
+            floatingMenu.appendChild(option);
+        });
+
+        // Add to document body
+        document.body.appendChild(floatingMenu);
+
+        // Get button element
+        const dropdownBtn = document.getElementById('model-dropdown-btn');
+
+        // Position and show/hide the menu
+        const toggleMenu = (show) => {
+            if (show) {
+                const buttonRect = dropdownBtn.getBoundingClientRect();
+                floatingMenu.style.display = 'block'; // Temporarily show to calculate height
+                const menuHeight = floatingMenu.offsetHeight;
+                floatingMenu.style.top = `${buttonRect.top - menuHeight - 8}px`;
+                floatingMenu.style.left = `${buttonRect.left}px`;
+                console.log('📥 Menu displayed at:', floatingMenu.style.top, floatingMenu.style.left);
+            } else {
+                floatingMenu.style.display = 'none';
+            }
+        };
+
+        // Toggle button click
+        let menuVisible = false;
         dropdownBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            dropdownBtn.classList.toggle('active');
-            dropdownContent.classList.toggle('hidden');
-
-            // For animation, add the show class after removing hidden
-            if (!dropdownContent.classList.contains('hidden')) {
-                // Small delay for the animation to work properly
-                setTimeout(() => {
-                    dropdownContent.classList.add('show');
-                }, 10);
-            } else {
-                dropdownContent.classList.remove('show');
-            }
+            e.stopPropagation();
+            menuVisible = !menuVisible;
+            toggleMenu(menuVisible);
+            console.log('Menu visibility set to:', menuVisible);
         });
 
-        // Close dropdown when clicking outside
+        // Close menu on outside click
         document.addEventListener('click', (e) => {
-            if (!selectorContainer.contains(e.target)) {
-                dropdownContent.classList.add('hidden');
+            if (menuVisible && e.target !== dropdownBtn && !dropdownBtn.contains(e.target) && !floatingMenu.contains(e.target)) {
+                menuVisible = false;
+                toggleMenu(false);
             }
         });
 
-        // Add event listeners to model options
-        document.querySelectorAll('.model-option').forEach(option => {
+        // Handle option selection
+        floatingMenu.querySelectorAll('.model-option').forEach(option => {
             option.addEventListener('click', () => {
                 const previousModel = this.selectedModel;
                 this.selectedModel = option.dataset.model;
 
-                // Update the button text
+                // Update button text
                 document.getElementById('current-model-name').textContent = this.selectedModel;
 
-                // Update selected state in dropdown
-                document.querySelectorAll('.model-option').forEach(opt => {
-                    if (opt.dataset.model === this.selectedModel) {
-                        opt.classList.add('selected');
-                    } else {
-                        opt.classList.remove('selected');
-                    }
-                });
-
-                // Hide dropdown
-                dropdownContent.classList.add('hidden');
+                // Hide menu
+                menuVisible = false;
+                toggleMenu(false);
 
                 // Log model change and save preference
                 console.log(`Model changed from ${previousModel} to ${this.selectedModel}`);
@@ -378,6 +441,17 @@ export class QAHandler {
                 } catch (e) {
                     console.warn('Could not save model preference:', e);
                 }
+
+                // Update the visual selected state of options
+                floatingMenu.querySelectorAll('.model-option').forEach(opt => {
+                    if (opt.dataset.model === this.selectedModel) {
+                        opt.style.backgroundColor = '#EEF2FF';
+                        opt.style.borderLeft = '4px solid #4F46E5';
+                    } else {
+                        opt.style.backgroundColor = '';
+                        opt.style.borderLeft = '';
+                    }
+                });
             });
         });
     }

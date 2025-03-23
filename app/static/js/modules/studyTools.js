@@ -27,22 +27,26 @@ export class StudyTools {
 
     createModelSelector() {
         // Only create if we have models and the selector doesn't exist yet
-        if (!this.models || document.getElementById('summary-model-selector')) {
+        if (!this.models || document.getElementById('custom-model-selector')) {
             return;
         }
 
         // Create a model selector for the summary view
         const selectorContainer = document.createElement('div');
-        selectorContainer.className = 'model-selector-container flex items-center mb-2 text-xs';
+        selectorContainer.className = 'model-selector-container flex items-center mb-2 text-xs relative';
+        selectorContainer.id = 'model-selector-container';
+
+        // Create label and button only in the HTML
         selectorContainer.innerHTML = `
-            <label for="summary-model-selector" class="mr-2 text-gray-700">Summary model:</label>
-            <select id="summary-model-selector" class="p-1 border rounded text-xs">
-                ${Object.keys(this.models).map(model => `
-                    <option value="${model}" ${model === this.selectedSummaryModel ? 'selected' : ''}>
-                        ${model}
-                    </option>
-                `).join('')}
-            </select>
+            <label class="mr-2 text-gray-700">Summary model:</label>
+            <div class="relative inline-block" id="custom-model-selector">
+                <button id="dropdown-button" class="p-1 border rounded text-xs bg-white flex items-center" style="min-width: 120px;">
+                    <span id="selected-model">${this.selectedSummaryModel}</span>
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+            </div>
             <div class="ml-2 text-gray-500 model-info"></div>
             <button id="regenerate-summary" class="ml-2 px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700">
                 Regenerate
@@ -53,19 +57,127 @@ export class StudyTools {
         const summaryContainer = this.elements.summaryContent;
         summaryContainer.insertBefore(selectorContainer, summaryContainer.firstChild);
 
-        // Add event listeners
-        const selector = document.getElementById('summary-model-selector');
+        // Create the dropdown but add it to the button container instead of body
+        const modelSelector = document.getElementById('custom-model-selector');
+
+        const dropdownMenu = document.createElement('div');
+        dropdownMenu.id = 'dropdown-menu';
+
+        // Use inline styles to ensure visibility
+        Object.assign(dropdownMenu.style, {
+            position: 'absolute',
+            top: '100%',
+            left: '0',
+            width: '180px',
+            backgroundColor: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+            zIndex: '99999',
+            display: 'none',
+            fontSize: '12px',
+            marginTop: '5px'
+        });
+
+        // Create model options
+        Object.keys(this.models).forEach(model => {
+            const option = document.createElement('div');
+            option.className = 'model-option';
+            option.setAttribute('data-value', model);
+            Object.assign(option.style, {
+                padding: '8px 10px',
+                cursor: 'pointer',
+                borderBottom: '1px solid #eee'
+            });
+            if (model === this.selectedSummaryModel) {
+                option.style.backgroundColor = '#e0e7ff';
+            }
+            option.addEventListener('mouseover', () => {
+                option.style.backgroundColor = model === this.selectedSummaryModel ? '#e0e7ff' : '#f3f4f6';
+            });
+            option.addEventListener('mouseout', () => {
+                option.style.backgroundColor = model === this.selectedSummaryModel ? '#e0e7ff' : '';
+            });
+            option.textContent = model;
+            dropdownMenu.appendChild(option);
+        });
+
+        // Add the dropdown to the model selector instead of body
+        modelSelector.appendChild(dropdownMenu);
+
+        // Set up dropdown functionality
+        const dropdownButton = document.getElementById('dropdown-button');
+        const selectedModelText = document.getElementById('selected-model');
         const modelInfo = selectorContainer.querySelector('.model-info');
         const regenerateBtn = document.getElementById('regenerate-summary');
 
+        // Toggle dropdown when button is clicked
+        let dropdownVisible = false;
+        dropdownButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation(); // More aggressive stop
+
+            // Toggle visibility
+            dropdownVisible = !dropdownVisible;
+            console.log('Dropdown visibility toggled to:', dropdownVisible);
+
+            if (dropdownVisible) {
+                dropdownMenu.style.display = 'block';
+                // Add visible class for styling
+                dropdownMenu.className = 'dropdown-visible';
+            } else {
+                dropdownMenu.style.display = 'none';
+                dropdownMenu.className = '';
+            }
+        });
+
+        // Close dropdown when clicking elsewhere - improved with contains check
+        document.addEventListener('click', (event) => {
+            // Only close if click is outside the button AND the dropdown
+            if (dropdownVisible &&
+                !dropdownButton.contains(event.target) &&
+                !dropdownMenu.contains(event.target)) {
+                console.log('Outside click detected, closing dropdown');
+                dropdownVisible = false;
+                dropdownMenu.style.display = 'none';
+            }
+        });
+
+        // Handle option selection
+        const modelOptions = dropdownMenu.querySelectorAll('.model-option');
+        modelOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation(); // Stop event from reaching document
+
+                const selectedValue = option.getAttribute('data-value');
+                this.selectedSummaryModel = selectedValue;
+                selectedModelText.textContent = selectedValue;
+
+                // Update styling
+                modelOptions.forEach(opt => {
+                    opt.style.backgroundColor = '';
+                });
+                option.style.backgroundColor = '#e0e7ff';
+
+                // Update model info
+                this.updateModelInfo(modelInfo, this.selectedSummaryModel);
+
+                // Hide dropdown
+                dropdownVisible = false;
+                dropdownMenu.style.display = 'none';
+
+                console.log('Selected model:', selectedValue);
+            });
+        });
+
+        // Add debugging info to see if dropdown is in DOM
+        console.log('Dropdown menu added to DOM:', !!document.getElementById('dropdown-menu'));
+        console.log('Dropdown parent:', dropdownMenu.parentElement);
+
         // Update model info initially
         this.updateModelInfo(modelInfo, this.selectedSummaryModel);
-
-        // Update when selection changes
-        selector.addEventListener('change', () => {
-            this.selectedSummaryModel = selector.value;
-            this.updateModelInfo(modelInfo, this.selectedSummaryModel);
-        });
 
         // Regenerate summary with selected model
         regenerateBtn.addEventListener('click', () => this.regenerateSummary());
@@ -266,6 +378,9 @@ export class StudyTools {
     updateSummary(summary) {
         // Find if there's already a summary container
         let summaryTextContainer = this.elements.summaryContent.querySelector('.summary-text');
+
+        // Ensure summary content has correct overflow behavior
+        this.elements.summaryContent.style.overflow = 'visible';
 
         // Check if summary is empty or not yet generated
         const needsGeneration = !summary || summary.trim() === '';
