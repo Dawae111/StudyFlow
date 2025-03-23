@@ -38,6 +38,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const studyTools = new StudyTools(elements);
     const qaHandler = new QAHandler(elements);
 
+    // Register global event handler for summariesUpdated
+    document.addEventListener('summariesUpdated', (e) => {
+        console.log('Main: Received summariesUpdated event, will update document');
+        const documentData = e.detail.documentData;
+        if (documentData) {
+            // Let the document viewer update its internal data
+            documentViewer.renderDocument(documentData);
+
+            // Make sure current page is still set correctly
+            const currentPage = documentViewer.getCurrentPage();
+            if (currentPage) {
+                studyTools.updateContent(currentPage);
+            }
+        }
+    });
+
     // Load document data
     fetch(`/api/summaries/${fileId}`)
         .then(response => response.json())
