@@ -33,12 +33,17 @@ def add_page():
         file = request.files['file']
         document_id = request.form.get('documentId', '')
         
-        # Sanitize document_id to remove any path characters
+        # Sanitize document_id to remove any path characters and file extensions
         if '\\' in document_id or '/' in document_id:
             print(f"WARNING: Document ID contains path separators: {document_id}")
-            # Extract just the filename portion
             document_id = os.path.basename(document_id)
             print(f"Sanitized document ID: {document_id}")
+        
+        # Remove file extension if present (.pdf, etc)
+        if '.' in document_id:
+            base_document_id = document_id.split('.')[0]
+            print(f"Removed extension from document ID: {base_document_id}")
+            document_id = base_document_id
         
         print(f"⭐ Received request with document ID: {document_id}")
 
@@ -69,11 +74,18 @@ def add_page():
             document_file = None
             document_data = None
             
-            # List of possible locations to check
+            # Expanded list of possible locations to check
             locations = [
+                # Check in upload folder
+                os.path.join(upload_folder, f"{document_id}.json"),
                 os.path.join(upload_folder, 'studyflow', f"{document_id}.json"),
-                os.path.join(tempfile.gettempdir(), 'studyflow', f"{document_id}.json")
+                
+                # Check in temp directory
+                os.path.join(tempfile.gettempdir(), f"{document_id}.json"),
+                os.path.join(tempfile.gettempdir(), 'studyflow', f"{document_id}.json"),
             ]
+            
+            print(f"Looking for document JSON in these locations: {locations}")
             
             for loc in locations:
                 directory = os.path.dirname(loc)
@@ -81,7 +93,7 @@ def add_page():
                 
                 if os.path.exists(loc):
                     document_file = loc
-                    print(f"Found document at: {document_file}")
+                    print(f"Found document JSON at: {document_file}")
                     try:
                         with open(document_file, 'r') as f:
                             document_data = json.load(f)
@@ -89,31 +101,68 @@ def add_page():
                     except Exception as e:
                         print(f"Error loading document from {loc}: {str(e)}")
             
-            # If document not found, check if we should create a new one
+            # If document not found locally, try to fetch from GCS via debug endpoint
+            if not document_data:
+                print("Document JSON not found locally, checking GCS...")
+                try:
+                    from app.utils.gcs_utils import list_files_in_bucket, get_file_from_gcs
+                    
+                    # Use the file debug endpoint to get document data
+                    debug_url = f"/api/debug/document/{document_id}"
+                    debug_response = current_app.test_client().get(debug_url)
+                    debug_data = debug_response.get_json()
+                    
+                    if debug_data and debug_data.get('document_found'):
+                        document_data = debug_data.get('document_data')
+                        print(f"Found document data via debug endpoint: {document_id}")
+                        
+                        # Create a local copy of the document JSON
+                        document_file = os.path.join(tempfile.gettempdir(), 'studyflow', f"{document_id}.json")
+                        os.makedirs(os.path.dirname(document_file), exist_ok=True)
+                        with open(document_file, 'w') as f:
+                            json.dump(document_data, f)
+                    else:
+                        # Try to find the file in GCS directly
+                        files = list_files_in_bucket()
+                        matching_file = next((f for f in files if f['id'] == document_id), None)
+                        
+                        if matching_file:
+                            print(f"Found file in GCS bucket: {matching_file}")
+                            # This could be a new document - create minimal data
+                            document_data = {
+                                'file_id': document_id,
+                                'document_id': document_id,
+                                'file_type': matching_file.get('extension'),
+                                'file_url': matching_file.get('url'),
+                                'download_url': matching_file.get('url'),
+                                'original_name': matching_file.get('name'),
+                                'pages': []
+                            }
+                            
+                            # Create a local copy of the document JSON
+                            document_file = os.path.join(tempfile.gettempdir(), 'studyflow', f"{document_id}.json")
+                            os.makedirs(os.path.dirname(document_file), exist_ok=True)
+                            with open(document_file, 'w') as f:
+                                json.dump(document_data, f)
+                except Exception as fetch_error:
+                    print(f"Error fetching document from GCS: {str(fetch_error)}")
+            
+            # If document still not found, create a new one
             if not document_data:
                 print("Document not found in any location - creating new document data")
                 
-                # For this example, create minimal document data when not found
                 document_data = {
                     'file_id': document_id,
+                    'document_id': document_id,
                     'pages': []
                 }
                 
-                # Use the first location as the save location
-                document_file = locations[0]
+                # Use upload folder as the save location
+                document_file = os.path.join(upload_folder, 'studyflow', f"{document_id}.json")
+                directory = os.path.dirname(document_file)
+                os.makedirs(directory, exist_ok=True)
 
             # Process the uploaded file to extract text and page count
-            # Assume we have a function that processes various file types
-            
-            # Create temp file info for processing
-            new_file_info = {
-                'id': unique_filename.split('.')[0],
-                'original_name': original_filename,
-                'path': file_path,
-                'type': file_ext
-            }
-            
-            # Process file to extract text
             if file_ext == 'pdf':
                 new_pages_data = process_pdf(file_path)
             elif file_ext in ['jpg', 'jpeg', 'png']:
@@ -129,47 +178,120 @@ def add_page():
             # Calculate the starting page number for the new pages
             start_page_num = len(document_data.get('pages', [])) + 1
             
-            # Now, if both files are PDFs, try to merge them
-            try:
-                import PyPDF2
+            # For PDFs, handle merging with cloud storage support
+            if file_ext.lower() == 'pdf':
+                try:
+                    import PyPDF2
+                    from app.utils.gcs_utils import get_file_from_gcs, upload_file_to_gcs
+                    
+                    original_pdf_path = None
+                    has_cloud_original = False
+                    
+                    # Step 1: First check for a local PDF file
+                    original_files = []
+                    for filename in os.listdir(upload_folder):
+                        if filename.startswith(document_id) and filename.lower().endswith('.pdf'):
+                            original_files.append(os.path.join(upload_folder, filename))
+                    
+                    if original_files:
+                        original_pdf_path = original_files[0]
+                        print(f"Found original PDF locally: {original_pdf_path}")
+                    
+                    # Step 2: If not found locally, check GCS
+                    if not original_pdf_path and document_data.get('file_type', '').lower() == 'pdf':
+                        try:
+                            print("Original PDF not found locally, checking GCS...")
+                            
+                            # Try to get file extension and original name
+                            file_extension = 'pdf'
+                            original_name = document_data.get('original_name')
+                            
+                            # Download from GCS
+                            file_content = get_file_from_gcs(document_id, file_extension, original_name)
+                            
+                            # Save to a temporary file
+                            temp_original_pdf = os.path.join(upload_folder, f"{document_id}_original.pdf")
+                            with open(temp_original_pdf, 'wb') as f:
+                                f.write(file_content)
+                            
+                            original_pdf_path = temp_original_pdf
+                            has_cloud_original = True
+                            print(f"Downloaded original PDF from GCS: {original_pdf_path}")
+                            
+                        except Exception as cloud_error:
+                            print(f"Error fetching original PDF from GCS: {str(cloud_error)}")
+                    
+                    # Step 3: If we have original PDF, merge with the new file
+                    if original_pdf_path:
+                        merged_pdf_path = os.path.join(upload_folder, f"{document_id}.pdf")
+                        
+                        print(f"Merging PDFs: {original_pdf_path} + {file_path} -> {merged_pdf_path}")
+                        
+                        merger = PyPDF2.PdfMerger()
+                        merger.append(original_pdf_path)
+                        merger.append(file_path)
+                        merger.write(merged_pdf_path)
+                        merger.close()
+                        
+                        print(f"Successfully merged PDFs to: {merged_pdf_path}")
+                        
+                        # Step 4: Update document data to reference the merged file
+                        document_data['merged_pdf'] = True
+                        document_data['original_file'] = original_pdf_path
+                        document_data['merged_file'] = merged_pdf_path
+                        
+                        # Step 5: If original was from cloud, upload merged file back to cloud
+                        if has_cloud_original:
+                            try:
+                                print("Uploading merged PDF back to GCS...")
+                                with open(merged_pdf_path, 'rb') as merged_file:
+                                    # Create a file object from the merged PDF
+                                    from io import BytesIO
+                                    file_obj = BytesIO(merged_file.read())
+                                    file_obj.seek(0)  # Reset file pointer
+                                    
+                                    # Upload to GCS with original name as prefix
+                                    original_name = document_data.get('original_name') or f"{document_id}"
+                                    gcs_url = upload_file_to_gcs(file_obj, document_id, 'pdf', original_name)
+                                    
+                                    # Update document data with new URL
+                                    document_data['file_url'] = gcs_url
+                                    document_data['download_url'] = gcs_url
+                                    print(f"Uploaded merged PDF to GCS: {gcs_url}")
+                                    
+                            except Exception as upload_error:
+                                print(f"Error uploading merged PDF to GCS: {str(upload_error)}")
+                                # Continue with local file if cloud upload fails
+                        
+                        # Step 6: Set local file URL for viewer
+                        # This ensures the viewer can access the file even if cloud upload failed
+                        try:
+                            relative_path = os.path.relpath(
+                                merged_pdf_path, 
+                                os.path.join(current_app.root_path, 'static')
+                            )
+                            local_file_url = f"/static/{relative_path}"
+                            document_data['local_file_url'] = local_file_url
+                            
+                            # If we don't have a cloud URL, use the local URL
+                            if not document_data.get('file_url'):
+                                document_data['file_url'] = local_file_url
+                                document_data['download_url'] = local_file_url
+                        except Exception as url_error:
+                            print(f"Error creating local file URL: {str(url_error)}")
                 
-                # Find the original PDF file path
-                original_files = []
-                for filename in os.listdir(upload_folder):
-                    if filename.startswith(document_id) and filename.lower().endswith('.pdf'):
-                        original_files.append(os.path.join(upload_folder, filename))
-                
-                # If we found the original file and both are PDFs
-                if original_files and file_ext.lower() == 'pdf':
-                    original_pdf_path = original_files[0]
-                    merged_pdf_path = os.path.join(upload_folder, f"{document_id}.pdf")
-                    
-                    print(f"Attempting to merge PDFs: {original_pdf_path} and {file_path}")
-                    
-                    merger = PyPDF2.PdfMerger()
-                    merger.append(original_pdf_path)
-                    merger.append(file_path)
-                    merger.write(merged_pdf_path)
-                    merger.close()
-                    
-                    print(f"Successfully merged PDFs to: {merged_pdf_path}")
-                    
-                    # Optionally update the document data to point to the merged file
-                    # This depends on how your viewer loads files
-                    document_data['merged_pdf'] = True
-                    document_data['original_file'] = original_pdf_path
-                    document_data['merged_file'] = merged_pdf_path
-            except Exception as e:
-                print(f"Error merging PDFs: {str(e)}")
-                # If merge fails, we still have the individual files
+                except Exception as merge_error:
+                    print(f"Error during PDF merge process: {str(merge_error)}")
+                    print(traceback.format_exc())
+                    # Continue even if merge fails - we'll still have the individual files
             
-            # Renumber the new pages and add them to the document
+            # Add the new pages to the document
             for i, page in enumerate(new_pages_data):
                 page['page_number'] = start_page_num + i
                 document_data['pages'].append(page)
             
-            # Save updated document data
-            print(f"Saving updated document to: {document_file}")
+            # Save updated document JSON
+            print(f"Saving updated document JSON to: {document_file}")
             directory = os.path.dirname(document_file)
             os.makedirs(directory, exist_ok=True)
             
