@@ -89,8 +89,8 @@ export class DocumentViewer {
 
         pageElement.innerHTML = `
             <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <div class="page-number font-semibold mr-1 text-indigo-600">P${page.page_number}</div>
+            <div class="flex items-center">
+                <div class="page-number font-semibold mr-1 text-indigo-600">P${page.page_number}</div>
                     <div class="page-preview text-xs text-gray-500 truncate">${previewText}</div>
                 </div>
             </div>
@@ -243,9 +243,9 @@ export class DocumentViewer {
                     
                     <!-- Right: Download Button -->
                     <div class="flex-shrink-0">
-                        <a href="${this.documentData.download_url}" download class="text-indigo-600 hover:underline flex items-center">
-                            <i class="fas fa-download mr-1"></i> Download
-                        </a>
+                    <a href="${this.documentData.download_url}" download class="text-indigo-600 hover:underline flex items-center">
+                        <i class="fas fa-download mr-1"></i> Download
+                    </a>
                     </div>
                 </div>
                 
@@ -296,8 +296,8 @@ export class DocumentViewer {
                             <i class="fas fa-search-plus"></i>
                         </button>
                         <button id="toggle-extracted-text" class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200">
-                            <i class="fas fa-file-alt mr-1"></i> Show Text
-                        </button>
+                        <i class="fas fa-file-alt mr-1"></i> Show Text
+                    </button>
                     </div>
                 </div>
                 
@@ -505,34 +505,10 @@ export class DocumentViewer {
 
                     this.documentData = newDocData;
 
-                    // Store current scroll positions before updating the view
-                    const pdfViewerContainer = document.getElementById('pdf-viewer');
-                    const pdfScrollPosition = pdfViewerContainer ? pdfViewerContainer.scrollTop : 0;
-                    
                     // Go to the newly added page
                     this.currentPageId = this.documentData.pages.length;
-                    
-                    // Update the view
                     this.renderThumbnails();
                     this.renderCurrentPage();
-                    
-                    // Force a refresh of the PDF viewer to ensure new pages are loaded
-                    if (this.documentData.file_type === 'pdf') {
-                        this.pdfDocument = null; // Clear the cached PDF document
-                        
-                        // Short delay to ensure the DOM is updated
-                        setTimeout(() => {
-                            this.renderPdf(this.currentPageId);
-                            
-                            // Dispatch an event to notify other components about the new pages
-                            const event = new CustomEvent('summariesUpdated', {
-                                detail: {
-                                    documentData: this.documentData
-                                }
-                            });
-                            document.dispatchEvent(event);
-                        }, 200);
-                    }
 
                     alert(`New content added successfully! Added ${pagesAdded} page(s).`);
                 } catch (error) {
@@ -794,6 +770,16 @@ export class DocumentViewer {
         if (questionInput) {
             questionInput.value = text;
             questionInput.focus();
+
+            // Remove the placeholder text from the Q&A container
+            const qaContainer = document.getElementById('qa-container');
+            if (qaContainer) {
+                // Find and remove any placeholder text elements
+                const placeholders = qaContainer.querySelectorAll('.text-gray-500.text-center');
+                placeholders.forEach(placeholder => {
+                    placeholder.remove();
+                });
+            }
 
             // Now automatically click the ask button
             const askButton = document.getElementById('ask-button');

@@ -485,14 +485,20 @@ export class QAHandler {
     }
 
     askQuestion() {
-        const question = this.elements.questionInput.value.trim();
-        if (!question) return;
-
+        console.log('🔍 Asking question...');
+        const question = this.elements.questionInput.value;
+        if (!question) {
+            console.log('Question is empty, skipping...');
+            return;
+        }
+        console.log('Question is not empty...');
         // Remove the empty state message if it exists
         const emptyState = document.getElementById('qa-empty-state');
         if (emptyState) {
+            console.log('Removing empty state...');
             emptyState.remove();
         }
+        console.log('Empty state removed...');
 
         // Get the current page ID from the appController - ensure it's a string
         // First try to get it from the document viewer, then fallback to our stored value
@@ -548,6 +554,7 @@ export class QAHandler {
         this.saveQuestionsToStorage();
 
         // Make API call asynchronously
+        console.log('Fetching answer...');
         this.fetchAnswer(questionEntry);
     }
 

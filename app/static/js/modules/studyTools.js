@@ -437,43 +437,6 @@ export class StudyTools {
         this.elements.notesTextarea.value = notes || '';
     }
 
-    async askQuestion() {
-        const question = this.elements.questionInput.value.trim();
-        if (!question) return;
-
-        console.log(`StudyTools: Asking question for file ${this.currentFileId}, page ${this.currentPageId}`);
-
-        // Check if we have valid current page info
-        if (!this.currentFileId) {
-            console.error('StudyTools: No currentFileId available for Q&A');
-            alert('Error: No document is currently loaded.');
-            return;
-        }
-
-        // Default to page 1 if no page ID is set
-        const pageId = this.currentPageId || 1;
-
-        const questionEl = this.createQuestionElement(question);
-        this.elements.qaHistory.appendChild(questionEl);
-        this.elements.questionInput.value = '';
-
-        // Ensure the new question is visible by scrolling to it
-        this.scrollToBottom();
-
-        try {
-            console.log(`StudyTools: Sending Q&A request - File: ${this.currentFileId}, Page: ${pageId}, Question: ${question}`);
-            const data = await api.askQuestion(question, this.currentFileId, pageId);
-            console.log('StudyTools: Received Q&A response:', data);
-            this.updateAnswer(questionEl, data);
-
-            // Scroll to show the answer after it's loaded
-            this.scrollToBottom();
-        } catch (error) {
-            console.error('StudyTools: Error in Q&A:', error);
-            this.showAnswerError(questionEl);
-        }
-    }
-
     createQuestionElement(question) {
         const questionEl = document.createElement('div');
         questionEl.className = 'question-item bg-white rounded-lg shadow-sm mb-4';
