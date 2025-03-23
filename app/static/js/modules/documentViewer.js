@@ -529,50 +529,6 @@ export class DocumentViewer {
         fileInput.click();
     }
 
-    removeCurrentPage() {
-        if (!this.documentData || this.documentData.pages.length <= 1) {
-            alert('Cannot remove the only page in the document.');
-            return;
-        }
-
-        if (!confirm(`Are you sure you want to remove page ${this.currentPageId}?`)) {
-            return;
-        }
-
-        const docId = this.getDocumentId();
-        if (!docId) {
-            alert('Cannot remove page: Missing document ID');
-            return;
-        }
-
-        console.log("Removing page from document ID:", docId);
-
-        api.removePage(docId, this.currentPageId)
-            .then(result => {
-                if (result.success) {
-                    this.documentData.pages = this.documentData.pages.filter(p => p.page_number !== this.currentPageId);
-
-                    this.documentData.pages.forEach((page, idx) => {
-                        page.page_number = idx + 1;
-                    });
-
-                    if (this.currentPageId > this.documentData.pages.length) {
-                        this.currentPageId = this.documentData.pages.length;
-                    }
-
-                    this.renderThumbnails();
-                    this.renderCurrentPage();
-
-                    alert('Page removed successfully!');
-                } else {
-                    throw new Error(result.message || 'Failed to remove page');
-                }
-            })
-            .catch(error => {
-                console.error('Error removing page:', error);
-                alert('Failed to remove page: ' + error.message);
-            });
-    }
 
     // Add this helper method
     updateLoadingMessage(message) {
