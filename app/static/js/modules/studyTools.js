@@ -202,6 +202,65 @@ export class StudyTools {
         }
     }
 
+    // Function to convert simple markdown to HTML
+    markdownToHtml(text) {
+        if (!text) return '';
+
+        // Handle bullet points (lines starting with '- ')
+        text = text.replace(/^- (.+)$/gm, '<li>$1</li>');
+
+        // If we added any list items, wrap them in a ul
+        if (text.includes('<li>')) {
+            text = text.replace(/<li>(.+)<\/li>/g, '<ul class="list-disc pl-5 space-y-1"><li>$1</li></ul>');
+            // Clean up duplicate ul tags that might occur from regex
+            text = text.replace(/<\/ul>\s*<ul class="list-disc pl-5 space-y-1">/g, '');
+        }
+
+        // Handle bold text (**text**)
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+        // Handle line breaks
+        text = text.replace(/\n/g, '<br>');
+
+        return text;
+    }
+
+    updateSummaryDirectly(summary) {
+        if (!summary || summary.trim() === '') {
+            console.log('Empty summary received, not updating UI');
+            return;
+        }
+
+        console.log('Directly updating summary in UI:', summary.substring(0, 50) + '...');
+
+        // Simple, reliable way to update summary content
+        const summaryContainer = document.getElementById('summary-content');
+        if (summaryContainer) {
+            // Convert markdown to HTML
+            const formattedSummary = this.markdownToHtml(summary);
+
+            summaryContainer.innerHTML = `
+                <div class="summary-text p-4 bg-indigo-50 rounded-lg transition-colors border border-indigo-100">
+                    <h4 class="font-semibold mb-2">Summary</h4>
+                    <div class="summary-content whitespace-normal break-words">
+                        <div class="text-base leading-relaxed markdown-content">${formattedSummary}</div>
+                    </div>
+                </div>
+            `;
+
+            // Use a more subtle highlight without changing colors/font
+            const summaryText = summaryContainer.querySelector('.summary-text');
+            if (summaryText) {
+                summaryText.style.boxShadow = '0 0 0 2px rgba(79, 70, 229, 0.2)';
+                setTimeout(() => {
+                    summaryText.style.boxShadow = 'none';
+                }, 2000);
+            }
+        } else {
+            console.error('Could not find summary-content element');
+        }
+    }
+
     updateSummary(summary) {
         // Find if there's already a summary container
         let summaryTextContainer = this.elements.summaryContent.querySelector('.summary-text');
@@ -209,18 +268,26 @@ export class StudyTools {
         // Check if summary is empty or not yet generated
         const needsGeneration = !summary || summary.trim() === '';
 
+        // Convert markdown to HTML if summary exists
+        const formattedSummary = needsGeneration ? '' : this.markdownToHtml(summary);
+
         if (summaryTextContainer) {
             if (needsGeneration) {
                 summaryTextContainer.innerHTML = `
                 <h4 class="font-semibold mb-2">Summary</h4>
                 <p class="text-gray-500">Generating summary... This may take a moment.</p>
+                <div class="mt-3 flex justify-center items-center">
+                    <div class="animate-pulse mr-2 h-2 w-2 rounded-full bg-indigo-600"></div>
+                    <div class="animate-pulse delay-75 mr-2 h-2 w-2 rounded-full bg-indigo-600"></div>
+                    <div class="animate-pulse delay-150 h-2 w-2 rounded-full bg-indigo-600"></div>
+                </div>
                 `;
-                // Trigger summary generation
-                this.triggerSummaryGeneration();
             } else {
                 summaryTextContainer.innerHTML = `
                 <h4 class="font-semibold mb-2">Summary</h4>
-                <p>${summary}</p>
+                <div class="summary-content whitespace-normal break-words">
+                    <div class="text-base leading-relaxed markdown-content">${formattedSummary}</div>
+                </div>
                 `;
             }
         } else {
@@ -229,60 +296,22 @@ export class StudyTools {
                 <div class="summary-text p-4 bg-indigo-50 rounded-lg">
                 <h4 class="font-semibold mb-2">Summary</h4>
                 <p class="text-gray-500">Generating summary... This may take a moment.</p>
+                <div class="mt-3 flex justify-center items-center">
+                    <div class="animate-pulse mr-2 h-2 w-2 rounded-full bg-indigo-600"></div>
+                    <div class="animate-pulse delay-75 mr-2 h-2 w-2 rounded-full bg-indigo-600"></div>
+                    <div class="animate-pulse delay-150 h-2 w-2 rounded-full bg-indigo-600"></div>
+                </div>
                 </div>
                 `;
-                // Trigger summary generation
-                this.triggerSummaryGeneration();
             } else {
                 this.elements.summaryContent.innerHTML = `
                 <div class="summary-text p-4 bg-indigo-50 rounded-lg">
                 <h4 class="font-semibold mb-2">Summary</h4>
-                <p>${summary}</p>
+                <div class="summary-content whitespace-normal break-words">
+                    <div class="text-base leading-relaxed markdown-content">${formattedSummary}</div>
+                </div>
                 </div>
                 `;
-            }
-        }
-    }
-
-    // Helper method to trigger summary generation
-    async triggerSummaryGeneration() {
-        if (!this.currentFileId) {
-            console.warn('Cannot generate summary: No file ID available');
-            return;
-        }
-
-        try {
-            console.log('Triggering summary generation for file:', this.currentFileId);
-
-            // Call API to generate the summary
-            await api.analyzeDocument(this.currentFileId, this.selectedSummaryModel);
-
-            // Reload the document data after generation
-            const docData = await api.fetchDocumentData(this.currentFileId);
-
-            // Find the current page and update
-            const currentPage = docData.pages.find(p => p.page_number === this.currentPageId);
-            if (currentPage) {
-                this.updateContent(currentPage);
-            }
-        } catch (error) {
-            console.error('Error generating summary:', error);
-            // Update the UI to show the error
-            const summaryTextContainer = this.elements.summaryContent.querySelector('.summary-text');
-            if (summaryTextContainer) {
-                summaryTextContainer.innerHTML = `
-                <h4 class="font-semibold mb-2">Summary</h4>
-                <p class="text-red-500">Failed to generate summary. Please try again.</p>
-                <button id="retry-summary" class="mt-2 px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700">
-                    Retry
-                </button>
-                `;
-
-                // Add retry button handler
-                const retryButton = summaryTextContainer.querySelector('#retry-summary');
-                if (retryButton) {
-                    retryButton.addEventListener('click', () => this.triggerSummaryGeneration());
-                }
             }
         }
     }

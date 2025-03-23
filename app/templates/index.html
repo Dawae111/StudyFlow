@@ -35,27 +35,29 @@
         #select-text-button {
             transition: all 0.3s ease;
         }
-        
+
         #select-text-button:hover {
             transform: translateY(-2px);
         }
-        
+
         #select-text-button.active {
             animation: pulse 2s infinite;
         }
-        
+
         #selection-status {
             max-width: 250px;
             transition: all 0.3s ease;
         }
-        
+
         @keyframes pulse {
             0% {
                 box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
             }
+
             70% {
                 box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
             }
+
             100% {
                 box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
             }
@@ -68,14 +70,14 @@
             height: 100%;
             overflow: auto;
         }
-        
+
         .page-container {
             position: relative;
             margin: 10px auto;
             background-color: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
         }
-        
+
         .text-layer {
             position: absolute;
             top: 0;
@@ -86,19 +88,19 @@
             opacity: 0.2;
             line-height: 1.0;
         }
-        
-        .text-layer > span {
+
+        .text-layer>span {
             color: transparent;
             position: absolute;
             white-space: pre;
             cursor: text;
             transform-origin: 0% 0%;
         }
-        
+
         .text-layer ::selection {
             background: rgba(0, 0, 255, 0.3);
         }
-        
+
         .highlight-layer {
             position: absolute;
             top: 0;
@@ -107,12 +109,12 @@
             bottom: 0;
             pointer-events: none;
         }
-        
+
         .highlight {
             position: absolute;
             background-color: rgba(255, 255, 0, 0.3);
         }
-        
+
         .pdf-controls {
             display: flex;
             justify-content: space-between;
@@ -121,8 +123,9 @@
             border-radius: 4px;
             margin-bottom: 10px;
         }
-        
-        .pdf-controls button, .pdf-controls select {
+
+        .pdf-controls button,
+        .pdf-controls select {
             padding: 6px 12px;
             border-radius: 4px;
             border: 1px solid #d1d5db;
@@ -130,22 +133,22 @@
             font-size: 0.875rem;
             cursor: pointer;
         }
-        
+
         .pdf-controls button:hover {
             background-color: #f9fafb;
         }
-        
+
         #page-counter {
             display: flex;
             align-items: center;
         }
-        
+
         .zoom-controls {
             display: flex;
             align-items: center;
             gap: 5px;
         }
-        
+
         #pdf-loading {
             position: absolute;
             top: 50%;
@@ -154,10 +157,10 @@
             padding: 20px;
             background: white;
             border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             z-index: 10;
         }
-        
+
         #clipboard-debug {
             position: fixed;
             bottom: 0;
@@ -169,6 +172,57 @@
             padding: 10px;
             overflow: auto;
             display: none;
+        }
+
+        /* Better styling for summary boxes */
+        .summary-text {
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: none;
+        }
+
+        .summary-content {
+            line-height: 1.7;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            font-size: 1rem;
+            min-height: 100px;
+        }
+
+        #summary-content {
+            overflow-y: auto;
+            height: auto;
+            max-height: calc(100vh - 180px);
+            padding-bottom: 20px;
+        }
+
+        .summary-content p {
+            margin-bottom: 1rem;
+            font-size: 1rem !important;
+            color: #333;
+        }
+
+        /* Markdown styling */
+        .markdown-content ul {
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .markdown-content li {
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
+
+        .markdown-content strong {
+            font-weight: 600;
+            color: #4338ca;
+            /* Indigo 700 */
+        }
+
+        /* Add smooth transition for all font changes */
+        * {
+            transition: font-size 0.2s ease, color 0.2s ease, background-color 0.3s ease;
         }
     </style>
 </head>
