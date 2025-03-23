@@ -34,7 +34,7 @@ export class AppController {
     }
 
     init() {    
-        console.log("StudyFlow App initializing...");
+        console.log("Notate App initializing...");
 
         // Check server connection
         this.checkServerConnection().then(isConnected => {
@@ -47,7 +47,7 @@ export class AppController {
         });
 
         // Any additional initialization can go here
-        console.log("StudyFlow App initialized");
+        console.log("Notate App initialized");
     }
 
     handleFileProcessed(documentData, fileId) {
