@@ -339,7 +339,7 @@ export class QAHandler {
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             z-index: 999999;
-            width: 300px;
+            width: 400px;
             max-height: 400px;
             overflow-y: auto;
             padding: 8px 0;
