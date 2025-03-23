@@ -171,5 +171,10 @@ export class AppController {
 
         // Clean up any existing document viewer state
         this.documentViewer.cleanupPdfMonitoring();
+
+        // Refresh the page after a short delay to ensure cleanup is complete
+        setTimeout(() => {
+            window.location.reload();
+        }, 10);
     }
 } 
