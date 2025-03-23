@@ -24,6 +24,12 @@ export class AppController {
         document.addEventListener('summariesUpdated', (e) => {
             this.handleSummariesUpdated(e.detail.documentData);
         });
+
+        // Add listener for return to homepage event
+        document.addEventListener('returnToHomepage', () => {
+            this.showHomepage();
+        });
+
         this.fileListHandler = new FileListHandler(elements, this.handleFileSelected.bind(this));
     }
 
@@ -151,5 +157,19 @@ export class AppController {
         if (currentPage) {
             this.studyTools.updateContent(currentPage);
         }
+    }
+
+    showHomepage() {
+        // Show upload section and header, hide document viewer
+        this.elements.uploadSection.classList.remove('hidden');
+        this.elements.header.classList.remove('hidden');
+        this.elements.documentViewer.classList.add('hidden');
+
+        // Reset current file ID
+        this.currentFileId = null;
+        this.studyTools.setFileId(null);
+
+        // Clean up any existing document viewer state
+        this.documentViewer.cleanupPdfMonitoring();
     }
 } 

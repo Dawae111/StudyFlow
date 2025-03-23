@@ -22,6 +22,16 @@ export class DocumentViewer {
         document.addEventListener('summariesUpdated', (e) => {
             this.handleSummariesUpdated(e.detail.documentData);
         });
+
+        // Add click handler for the header
+        const header = document.getElementById('sidebar-header');
+        if (header) {
+            header.addEventListener('click', () => {
+                // Dispatch a custom event that AppController will listen for
+                const event = new CustomEvent('returnToHomepage');
+                document.dispatchEvent(event);
+            });
+        }
     }
 
     renderDocument(documentData) {
