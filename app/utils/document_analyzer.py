@@ -139,10 +139,10 @@ def generate_summary(text, model=None):
             response = openai.ChatCompletion.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are a helpful assistant that clarify contents and help user understand contents confusing."},
-                    {"role": "user", "content": f"In bullet points, explain and clarify concept and ideas of the following text:\n\n{text}, and this text is directly shown for user, do not output markup or latex."}
+                    {"role": "system", "content": "You are a helpful assistant that clarifies contents with clear formatting. Present information in well-structured bullet points when appropriate."},
+                    {"role": "user", "content": f"Summarize the following text in clear bullet points. Start each point with '- ' on its own line. Keep each bullet point focused on a single concept. Format important terms in **bold** when appropriate:\n\n{text}"}
                 ],
-                max_tokens=150,
+                max_tokens=int(max_context_tokens * 0.25),  # Use 25% of max tokens for the response
                 temperature=0.3
             )
             

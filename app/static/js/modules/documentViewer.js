@@ -22,6 +22,16 @@ export class DocumentViewer {
         document.addEventListener('summariesUpdated', (e) => {
             this.handleSummariesUpdated(e.detail.documentData);
         });
+
+        // Add click handler for the header
+        const header = document.getElementById('sidebar-header');
+        if (header) {
+            header.addEventListener('click', () => {
+                // Dispatch a custom event that AppController will listen for
+                const event = new CustomEvent('returnToHomepage');
+                document.dispatchEvent(event);
+            });
+        }
     }
 
     renderDocument(documentData) {
@@ -1115,6 +1125,27 @@ export class DocumentViewer {
                 this.pdfCurrentZoom = Math.max(this.pdfCurrentZoom - 0.2, 0.5);
                 this.renderPdf(this.currentPageId);
             });
+        }
+    }
+
+    handleSummariesUpdated(documentData) {
+        // Update the stored document data with the new summaries
+        if (documentData && documentData.pages) {
+            console.log('DocumentViewer: Updating stored document data with new summaries');
+            this.documentData = documentData;
+
+            // If we're currently displaying a page, update the summary for that page
+            const currentPage = this.getCurrentPage();
+            if (currentPage) {
+                // Dispatch event to update study tools with the current page's data
+                const event = new CustomEvent('pageChanged', {
+                    detail: {
+                        page: currentPage,
+                        pageId: String(currentPage.page_number)
+                    }
+                });
+                document.dispatchEvent(event);
+            }
         }
     }
 }
