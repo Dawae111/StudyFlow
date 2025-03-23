@@ -8,7 +8,6 @@ export class StudyTools {
         this.models = null;
         this.selectedSummaryModel = null;
         this.pageData = {};  // Store page data including summaries
-        this.summaryGenerationInProgress = false; // Track generation status
         this.initializeEventListeners();
         this.loadAvailableModels();
     }
@@ -445,17 +444,8 @@ export class StudyTools {
 
     // Add this new method to trigger summary generation
     async triggerSummaryGeneration() {
-        // Prevent multiple concurrent summary generations
-        if (this.summaryGenerationInProgress) {
-            console.log('Summary generation already in progress, skipping request');
-            return;
-        }
-
         try {
-            // Set flag to indicate generation is in progress
-            this.summaryGenerationInProgress = true;
-            console.log('Starting summary generation process...');
-            
+            return
             // Call API to generate summary for the current file
             await api.analyzeDocument(this.currentFileId, this.selectedSummaryModel);
             
@@ -492,20 +482,6 @@ export class StudyTools {
                 }
             } else {
                 console.warn('Summary generation completed but new summary not found');
-                // Update UI to show generation completed but no summary found
-                const summaryTextContainer = this.elements.summaryContent.querySelector('.summary-text');
-                if (summaryTextContainer) {
-                    summaryTextContainer.innerHTML = `
-                        <h4 class="font-semibold mb-2">Summary</h4>
-                        <p class="text-gray-500">No summary could be generated for this content.</p>
-                        <button class="mt-2 text-sm text-indigo-600 underline" id="retry-summary">Try again</button>
-                    `;
-                    
-                    // Add retry button functionality
-                    document.getElementById('retry-summary')?.addEventListener('click', () => {
-                        this.triggerSummaryGeneration();
-                    });
-                }
             }
         } catch (error) {
             console.error('Error auto-generating summary:', error);
@@ -522,10 +498,6 @@ export class StudyTools {
                     this.triggerSummaryGeneration();
                 });
             }
-        } finally {
-            // Always reset the flag when done, regardless of success or failure
-            this.summaryGenerationInProgress = false;
-            console.log('Summary generation process completed, ready for next request');
         }
     }
 
