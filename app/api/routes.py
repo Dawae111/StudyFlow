@@ -226,7 +226,12 @@ def add_page():
                     
                     # Step 3: If we have original PDF, merge with the new file
                     if original_pdf_path:
-                        merged_pdf_path = os.path.join(upload_folder, f"{document_id}.pdf")
+                        # Create a consistent merged filename with "merged_" prefix
+                        original_name = document_data.get('original_name') or f"document_{document_id}"
+                        merged_filename = f"merged_{original_name}"
+                        
+                        # Local merged PDF path with the new naming pattern
+                        merged_pdf_path = os.path.join(upload_folder, f"{merged_filename}_{document_id}.pdf")
                         
                         print(f"Merging PDFs: {original_pdf_path} + {file_path} -> {merged_pdf_path}")
                         
@@ -243,7 +248,7 @@ def add_page():
                         document_data['original_file'] = original_pdf_path
                         document_data['merged_file'] = merged_pdf_path
                         
-                        # Step 5: ALWAYS upload to GCS, not just if original was from cloud
+                        # Step 5: ALWAYS upload to GCS
                         try:
                             print("Uploading merged PDF to GCS...")
                             with open(merged_pdf_path, 'rb') as merged_file:
@@ -252,13 +257,13 @@ def add_page():
                                 file_obj = BytesIO(merged_file.read())
                                 file_obj.seek(0)  # Reset file pointer
                                 
-                                # Upload to GCS with original name as prefix
-                                original_name = document_data.get('original_name') or f"{document_id}"
-                                gcs_url = upload_file_to_gcs(file_obj, document_id, 'pdf', original_name)
+                                # Upload to GCS with the merged filename prefix
+                                gcs_url = upload_file_to_gcs(file_obj, document_id, 'pdf', original_filename=f"{merged_filename}")
                                 
                                 # Update document data with new URL
                                 document_data['file_url'] = gcs_url
                                 document_data['download_url'] = gcs_url
+                                document_data['original_name'] = merged_filename  # Update the name to reflect merged status
                                 print(f"✅ Successfully uploaded merged PDF to GCS: {gcs_url}")
                                 
                         except Exception as upload_error:
@@ -514,7 +519,7 @@ def get_summaries(file_id):
     print(f"Upload folder: {upload_folder}")
 
     # Check for local files first (for newly uploaded files)
-    merged_pdf_path = os.path.join(upload_folder, f"{file_id}.pdf")
+    merged_pdf_path = os.path.join(upload_folder, f"merged_{file_id}.pdf")
     original_files = glob.glob(os.path.join(upload_folder, f"{file_id}.*"))
     json_path = os.path.join(temp_dir, f"{file_id}.json")
     
