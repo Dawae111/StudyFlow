@@ -165,8 +165,10 @@ def add_page():
             # Process the uploaded file to extract text and page count
             if file_ext == 'pdf':
                 new_pages_data = process_pdf(file_path)
+                print(f"Processed PDF and extracted {len(new_pages_data)} pages")
             elif file_ext in ['jpg', 'jpeg', 'png']:
                 new_pages_data = process_image(file_path)
+                print(f"Processed image and extracted 1 page")
             else:
                 new_pages_data = [{
                     'page_number': len(document_data.get('pages', [])) + 1,
@@ -174,6 +176,7 @@ def add_page():
                     'summary': f'Uploaded file: {original_filename}',
                     'notes': ''
                 }]
+                print(f"Created basic page data for unsupported file type: {file_ext}")
                 
             # Calculate the starting page number for the new pages
             start_page_num = len(document_data.get('pages', [])) + 1
@@ -240,31 +243,32 @@ def add_page():
                         document_data['original_file'] = original_pdf_path
                         document_data['merged_file'] = merged_pdf_path
                         
-                        # Step 5: If original was from cloud, upload merged file back to cloud
-                        if has_cloud_original:
-                            try:
-                                print("Uploading merged PDF back to GCS...")
-                                with open(merged_pdf_path, 'rb') as merged_file:
-                                    # Create a file object from the merged PDF
-                                    from io import BytesIO
-                                    file_obj = BytesIO(merged_file.read())
-                                    file_obj.seek(0)  # Reset file pointer
-                                    
-                                    # Upload to GCS with original name as prefix
-                                    original_name = document_data.get('original_name') or f"{document_id}"
-                                    gcs_url = upload_file_to_gcs(file_obj, document_id, 'pdf', original_name)
-                                    
-                                    # Update document data with new URL
-                                    document_data['file_url'] = gcs_url
-                                    document_data['download_url'] = gcs_url
-                                    print(f"Uploaded merged PDF to GCS: {gcs_url}")
-                                    
-                            except Exception as upload_error:
-                                print(f"Error uploading merged PDF to GCS: {str(upload_error)}")
-                                # Continue with local file if cloud upload fails
+                        # Step 5: ALWAYS upload to GCS, not just if original was from cloud
+                        try:
+                            print("Uploading merged PDF to GCS...")
+                            with open(merged_pdf_path, 'rb') as merged_file:
+                                # Create a file object from the merged PDF
+                                from io import BytesIO
+                                file_obj = BytesIO(merged_file.read())
+                                file_obj.seek(0)  # Reset file pointer
+                                
+                                # Upload to GCS with original name as prefix
+                                original_name = document_data.get('original_name') or f"{document_id}"
+                                gcs_url = upload_file_to_gcs(file_obj, document_id, 'pdf', original_name)
+                                
+                                # Update document data with new URL
+                                document_data['file_url'] = gcs_url
+                                document_data['download_url'] = gcs_url
+                                print(f"✅ Successfully uploaded merged PDF to GCS: {gcs_url}")
+                                
+                        except Exception as upload_error:
+                            print(f"❌ Error uploading merged PDF to GCS: {str(upload_error)}")
+                            print(f"DEBUG: upload_error type: {type(upload_error)}")
+                            print(f"DEBUG: upload_error args: {upload_error.args}")
+                            print(traceback.format_exc())
                         
                         # Step 6: Set local file URL for viewer
-                        # This ensures the viewer can access the file even if cloud upload failed
+                        # This ensures the viewer can access the file even if cloud upload fails
                         try:
                             relative_path = os.path.relpath(
                                 merged_pdf_path, 
@@ -279,16 +283,58 @@ def add_page():
                                 document_data['download_url'] = local_file_url
                         except Exception as url_error:
                             print(f"Error creating local file URL: {str(url_error)}")
+                    else:
+                        # If no original PDF to merge with, upload this new PDF to GCS
+                        try:
+                            print("No original PDF found, uploading new PDF to GCS...")
+                            with open(file_path, 'rb') as new_pdf_file:
+                                from io import BytesIO
+                                file_obj = BytesIO(new_pdf_file.read())
+                                file_obj.seek(0)
+                                
+                                original_name = original_filename or f"document_{document_id}"
+                                gcs_url = upload_file_to_gcs(file_obj, document_id, 'pdf', original_name)
+                                
+                                document_data['file_url'] = gcs_url
+                                document_data['download_url'] = gcs_url
+                                document_data['file_type'] = 'pdf'
+                                print(f"✅ Successfully uploaded new PDF to GCS: {gcs_url}")
+                        except Exception as upload_error:
+                            print(f"❌ Error uploading new PDF to GCS: {str(upload_error)}")
+                            print(traceback.format_exc())
                 
                 except Exception as merge_error:
                     print(f"Error during PDF merge process: {str(merge_error)}")
                     print(traceback.format_exc())
                     # Continue even if merge fails - we'll still have the individual files
             
-            # Add the new pages to the document
+            # Generate summaries for new pages
+            print("Generating summaries for new pages...")
+            from app.utils.document_analyzer import generate_summary, get_available_models
+            
+            # Get default model for summaries
+            model_info = get_available_models()
+            default_model = model_info.get('default_summary_model', None)
+            
             for i, page in enumerate(new_pages_data):
-                page['page_number'] = start_page_num + i
-                document_data['pages'].append(page)
+                try:
+                    page_number = start_page_num + i
+                    page['page_number'] = page_number
+                    
+                    # Generate summary if page has text
+                    if page.get('text'):
+                        print(f"Generating summary for page {page_number}...")
+                        page['summary'] = generate_summary(page['text'], model=default_model)
+                        print(f"✅ Summary generated for page {page_number}")
+                    else:
+                        page['summary'] = "No text content available to summarize."
+                        print(f"⚠️ No text found for page {page_number}, skipping summary generation")
+                        
+                    document_data['pages'].append(page)
+                except Exception as summary_error:
+                    print(f"❌ Error generating summary for page {page_number}: {str(summary_error)}")
+                    # Still add the page even if summary generation fails
+                    document_data['pages'].append(page)
             
             # Save updated document JSON
             print(f"Saving updated document JSON to: {document_file}")
@@ -298,12 +344,13 @@ def add_page():
             with open(document_file, 'w') as f:
                 json.dump(document_data, f)
 
-            print(f"Added {len(new_pages_data)} pages to document {document_id}")
+            print(f"✅ Successfully added {len(new_pages_data)} pages to document {document_id}")
             return jsonify({
                 'message': f'New page(s) added successfully - {len(new_pages_data)} pages',
                 'success': True,
                 'document_id': document_id,
-                'pages_added': len(new_pages_data)
+                'pages_added': len(new_pages_data),
+                'summaries_generated': True
             }), 200
 
         print("ERROR: Invalid file type")
@@ -467,7 +514,7 @@ def get_summaries(file_id):
     print(f"Upload folder: {upload_folder}")
 
     # Check for local files first (for newly uploaded files)
-    merged_pdf_path = os.path.join(upload_folder, f"{file_id}_merged.pdf")
+    merged_pdf_path = os.path.join(upload_folder, f"{file_id}.pdf")
     original_files = glob.glob(os.path.join(upload_folder, f"{file_id}.*"))
     json_path = os.path.join(temp_dir, f"{file_id}.json")
     

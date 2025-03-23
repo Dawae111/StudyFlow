@@ -505,10 +505,34 @@ export class DocumentViewer {
 
                     this.documentData = newDocData;
 
+                    // Store current scroll positions before updating the view
+                    const pdfViewerContainer = document.getElementById('pdf-viewer');
+                    const pdfScrollPosition = pdfViewerContainer ? pdfViewerContainer.scrollTop : 0;
+                    
                     // Go to the newly added page
                     this.currentPageId = this.documentData.pages.length;
+                    
+                    // Update the view
                     this.renderThumbnails();
                     this.renderCurrentPage();
+                    
+                    // Force a refresh of the PDF viewer to ensure new pages are loaded
+                    if (this.documentData.file_type === 'pdf') {
+                        this.pdfDocument = null; // Clear the cached PDF document
+                        
+                        // Short delay to ensure the DOM is updated
+                        setTimeout(() => {
+                            this.renderPdf(this.currentPageId);
+                            
+                            // Dispatch an event to notify other components about the new pages
+                            const event = new CustomEvent('summariesUpdated', {
+                                detail: {
+                                    documentData: this.documentData
+                                }
+                            });
+                            document.dispatchEvent(event);
+                        }, 200);
+                    }
 
                     alert(`New content added successfully! Added ${pagesAdded} page(s).`);
                 } catch (error) {
