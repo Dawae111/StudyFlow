@@ -125,6 +125,16 @@ export class StudyTools {
 
         // Listen for page changes
         document.addEventListener('pageChanged', (e) => {
+            // Update the currentPageId when page changes
+            if (e.detail.page && e.detail.page.page_number) {
+                this.currentPageId = e.detail.page.page_number;
+                console.log(`StudyTools: Page changed to ${this.currentPageId}`);
+            } else if (e.detail.pageId) {
+                this.currentPageId = parseInt(e.detail.pageId);
+                console.log(`StudyTools: Page changed to ${this.currentPageId} (from pageId)`);
+            }
+
+            // Update content with the new page data
             this.updateContent(e.detail.page);
         });
 
@@ -143,6 +153,17 @@ export class StudyTools {
     }
 
     updateContent(page) {
+        if (!page) {
+            console.warn('StudyTools: Received null page data in updateContent');
+            return;
+        }
+
+        console.log(`StudyTools: Updating content for page ${page.page_number}`);
+
+        // Store the current page data for Q&A
+        this.currentPage = page;
+
+        // Update the UI
         this.updateSummary(page.summary);
         this.updateNotes(page.notes);
     }
@@ -274,6 +295,18 @@ export class StudyTools {
         const question = this.elements.questionInput.value.trim();
         if (!question) return;
 
+        console.log(`StudyTools: Asking question for file ${this.currentFileId}, page ${this.currentPageId}`);
+
+        // Check if we have valid current page info
+        if (!this.currentFileId) {
+            console.error('StudyTools: No currentFileId available for Q&A');
+            alert('Error: No document is currently loaded.');
+            return;
+        }
+
+        // Default to page 1 if no page ID is set
+        const pageId = this.currentPageId || 1;
+
         const questionEl = this.createQuestionElement(question);
         this.elements.qaHistory.appendChild(questionEl);
         this.elements.questionInput.value = '';
@@ -282,13 +315,15 @@ export class StudyTools {
         this.scrollToBottom();
 
         try {
-            const data = await api.askQuestion(question, this.currentFileId, this.currentPageId);
+            console.log(`StudyTools: Sending Q&A request - File: ${this.currentFileId}, Page: ${pageId}, Question: ${question}`);
+            const data = await api.askQuestion(question, this.currentFileId, pageId);
+            console.log('StudyTools: Received Q&A response:', data);
             this.updateAnswer(questionEl, data);
 
             // Scroll to show the answer after it's loaded
             this.scrollToBottom();
         } catch (error) {
-            console.error('Error:', error);
+            console.error('StudyTools: Error in Q&A:', error);
             this.showAnswerError(questionEl);
         }
     }

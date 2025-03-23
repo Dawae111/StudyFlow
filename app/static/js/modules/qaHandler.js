@@ -184,6 +184,7 @@ export class QAHandler {
 
         if (pageQuestions.length === 0) {
             const emptyState = document.createElement('div');
+            emptyState.id = 'qa-empty-state';
             emptyState.className = 'empty-state text-gray-500 text-center p-4';
             emptyState.textContent = 'No questions yet for this page. Ask something!';
             this.elements.qaHistory.appendChild(emptyState);
@@ -331,6 +332,12 @@ export class QAHandler {
     askQuestion() {
         const question = this.elements.questionInput.value.trim();
         if (!question) return;
+
+        // Remove the empty state message if it exists
+        const emptyState = document.getElementById('qa-empty-state');
+        if (emptyState) {
+            emptyState.remove();
+        }
 
         // Get the current page ID from the appController - ensure it's a string
         const pageId = String(this.appController.documentViewer?.currentPageId || this.currentPageId);
