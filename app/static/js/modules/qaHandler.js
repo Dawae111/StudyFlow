@@ -80,10 +80,11 @@ export class QAHandler {
                                     </div>
                                 `;
                             } else if (item.answer) {
+                                const formattedAnswer = this.markdownToHtml(item.answer);
                                 questionElement.innerHTML = `
                                     <p class="font-semibold">Q: ${item.question}</p>
                                     <div class="answer mt-2">
-                                        <p>A: ${item.answer}</p>
+                                        <p>A: ${formattedAnswer}</p>
                                         <p class="text-xs text-gray-500 mt-1">Answered using ${item.modelUsed || 'AI'}</p>
                                     </div>
                                 `;
@@ -220,10 +221,11 @@ export class QAHandler {
                             </div>
                         `;
                     } else if (item.answer) {
+                        const formattedAnswer = this.markdownToHtml(item.answer);
                         questionElement.innerHTML = `
                             <p class="font-semibold">Q: ${item.question}</p>
                             <div class="answer mt-2">
-                                <p>A: ${item.answer}</p>
+                                <p>A: ${formattedAnswer}</p>
                                 <p class="text-xs text-gray-500 mt-1">Answered using ${item.modelUsed || 'AI'}</p>
                             </div>
                         `;
