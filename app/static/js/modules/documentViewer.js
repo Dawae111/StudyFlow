@@ -102,9 +102,10 @@ export class DocumentViewer {
 
         pageElement.addEventListener('click', () => {
             this.currentPageId = page.page_number;
-            this.renderCurrentPage();
-            this.updateActiveThumbnail();
-            this.navigateToPdfPage(page.page_number);
+            this.scrollToPage(this.currentPageId);
+            // this.renderCurrentPage();
+            // this.updateActiveThumbnail();
+            // this.navigateToPdfPage(page.page_number);
         });
 
         return pageElement;
@@ -116,16 +117,18 @@ export class DocumentViewer {
         if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
             if (this.currentPageId < this.documentData.pages.length) {
                 this.currentPageId++;
-                this.renderCurrentPage();
-                this.updateActiveThumbnail();
-                this.navigateToPdfPage(this.currentPageId);
+                this.scrollToPage(this.currentPageId);
+                // this.renderCurrentPage();
+                // this.updateActiveThumbnail();
+                // this.navigateToPdfPage(this.currentPageId);
             }
         } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
             if (this.currentPageId > 1) {
                 this.currentPageId--;
-                this.renderCurrentPage();
-                this.updateActiveThumbnail();
-                this.navigateToPdfPage(this.currentPageId);
+                this.scrollToPage(this.currentPageId);
+                // this.renderCurrentPage();
+                // this.updateActiveThumbnail();
+                // this.navigateToPdfPage(this.currentPageId);
             }
         }
     }
@@ -1084,27 +1087,30 @@ export class DocumentViewer {
     scrollToPage(pageNum) {
         const pdfContainer = document.getElementById('pdf-viewer');
         if (!pdfContainer) return;
-
+    
         const pages = pdfContainer.getElementsByClassName('pdf-page-container');
         if (!pages.length) return;
-
+    
         const targetPage = Array.from(pages).find(page =>
             parseInt(page.dataset.pageNumber) === pageNum
         );
-
+    
         if (targetPage) {
-            // Calculate the scroll position to center the page
-            const containerRect = pdfContainer.getBoundingClientRect();
-            const pageRect = targetPage.getBoundingClientRect();
-            const scrollTop = targetPage.offsetTop - (containerRect.height - pageRect.height) / 2;
-
-            // Smooth scroll to the calculated position
-            pdfContainer.scrollTo({
-                top: scrollTop,
+            // Get current scroll position
+            const currentScroll = pdfContainer.scrollTop;
+            const targetScroll = targetPage.offsetTop;
+    
+            // Calculate the difference
+            const scrollDifference = targetScroll - currentScroll;
+    
+            // Scroll by the difference (relative movement)
+            pdfContainer.scrollBy({
+                top: scrollDifference,
                 behavior: 'smooth'
             });
         }
     }
+    
 
     enableTextActionButtons() {
         const actionButtons = [
