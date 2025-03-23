@@ -20,18 +20,21 @@ AI_MODELS = {
     "gpt-3.5-turbo": {
         "description": "Fast and cost-effective model for most tasks",
         "max_tokens": 4000,
+        "max_completion_tokens": 4000,
         "cost_per_1k": "$0.002",
         "use_case": "General purpose, summaries, Q&A"
     },
     "gpt-4-turbo": {
         "description": "Latest model with enhanced capabilities",
         "max_tokens": 128000,
+        "max_completion_tokens": 4096,  # Maximum allowed for responses
         "cost_per_1k": "$0.01",
         "use_case": "Most advanced reasoning, analysis of larger documents"
     },
     "gpt-4": {
         "description": "More advanced reasoning and higher accuracy",
         "max_tokens": 8000,
+        "max_completion_tokens": 4000,
         "cost_per_1k": "$0.03",
         "use_case": "Complex reasoning, detailed analysis"
     }
@@ -128,6 +131,7 @@ def generate_summary(text, model=None):
         try:
             # Get the max tokens for the model
             max_context_tokens = AI_MODELS.get(model, {}).get("max_tokens", 4000)
+            max_completion_tokens = AI_MODELS.get(model, {}).get("max_completion_tokens", 4000)
             
             # Limit text length to avoid token limits (allow for 25% of max tokens for response)
             max_input_tokens = int(max_context_tokens * 0.75)
@@ -135,15 +139,40 @@ def generate_summary(text, model=None):
                 text = text[:max_input_tokens * 4]
                 print(f"Text truncated to ~{max_input_tokens} tokens for {model}")
             
-            # Generate summary using Chat completions API
+            # Enhanced system message with more detailed instructions
+            system_message = """
+You are a tutor helping a student understand course materials. 
+Use an approachable, clear, and educational tone.
+Format your summaries with bullet points and highlight key concepts in bold.
+Present information in a structured, logical flow.
+Identify and emphasize the most important concepts.
+Be precise while remaining accessible to students.
+            """.strip()
+            
+            # Enhanced user prompt with more specific formatting instructions
+            user_prompt = f"""
+Summarize the following text for a student:
+
+{text}
+
+Format your summary as follows:
+1. Begin with a brief 1-2 sentence overview of the main topic.
+2. List the key points using bullet points (each starting with '- ').
+3. For each important term or concept, highlight it using **bold**.
+4. Keep each bullet point focused on a single concept.
+5. If there are steps or processes mentioned, present them in a sequential order.
+6. End with a 1-sentence conclusion or takeaway.
+            """.strip()
+            
+            # Generate summary using Chat completions API with enhanced prompting
             response = openai.ChatCompletion.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are a helpful assistant that clarifies contents with clear formatting. Present information in well-structured bullet points when appropriate."},
-                    {"role": "user", "content": f"Summarize the following text in clear bullet points. Start each point with '- ' on its own line. Keep each bullet point focused on a single concept. Format important terms in **bold** when appropriate:\n\n{text}"}
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": user_prompt}
                 ],
-                max_tokens=int(max_context_tokens * 0.25),  # Use 25% of max tokens for the response
-                temperature=0.3
+                max_tokens=min(int(max_context_tokens * 0.25), max_completion_tokens),  # Use the lower value
+                temperature=0.2
             )
             
             summary = response.choices[0].message.content.strip()
@@ -220,6 +249,7 @@ def get_answer(question, file_id, page_id=None, model=None):
             try:
                 # Get the max tokens for the model
                 max_context_tokens = AI_MODELS.get(model, {}).get("max_tokens", 4000)
+                max_completion_tokens = AI_MODELS.get(model, {}).get("max_completion_tokens", 4000)
                 
                 # Log which model is being used
                 print(f"Using model: {model} with max_tokens: {max_context_tokens}")
@@ -246,21 +276,61 @@ def get_answer(question, file_id, page_id=None, model=None):
                 
                 # Define a reasonable output token limit based on the model
                 if model == "gpt-4-turbo":
-                    max_output_tokens = 4000  # Generous output size for turbo
+                    max_output_tokens = min(4000, max_completion_tokens)  # Generous output size for turbo
                 else:
-                    max_output_tokens = int(max_context_tokens * 0.25)  # Reserve 25% of tokens for response
+                    max_output_tokens = min(int(max_context_tokens * 0.25), max_completion_tokens)  # Use the lower value
                 
                 print(f"Making API call to {model} with context length: {len(context)} chars and max output tokens: {max_output_tokens}")
                 
-                # Get answer using Chat completions API
+                # Enhanced system prompt for Q&A with stronger instructions against formatting
+                system_message = """
+You are an expert tutor for a college-level course with deep knowledge in this subject area.
+IMPORTANT: You must provide ALL answers in plain text ONLY - do not use ANY special formatting:
+- NO markdown formatting (no **, no *, no ## headings, no > blockquotes)
+- NO LaTeX or math notation (no \( \), no \[ \], no $ symbols for math)
+- NO formatting symbols of any kind
+- DO NOT use asterisks for emphasis
+- DO NOT use backslashes for equations
+
+When answering questions:
+1. Be thorough but clear in your explanations
+2. Provide step-by-step reasoning when analytical thinking is needed
+3. Use simple numbered or lettered lists for sequential steps
+4. When appropriate, explain why the answer matters within the broader context
+                """.strip()
+                
+                # Enhanced user prompt for Q&A with stronger warning against formatting
+                user_prompt = f"""
+The following text is from course materials:
+
+{context}
+
+Question: {question}
+
+Please provide a clear and comprehensive answer that directly addresses the question. Structure your response in a way that helps understanding:
+
+1. If relevant, briefly explain any key concepts involved
+2. Present your reasoning step-by-step if the question requires analysis
+3. End with a concise summary of the main answer
+
+IMPORTANT FORMATTING RULE: You must use plain text ONLY:
+- Do NOT use bold, italics, or any other text formatting
+- Do NOT use special characters, asterisks, or underscores for emphasis
+- Write mathematical expressions in plain text (example: write "w1 = 2/3" instead of using LaTeX formatting)
+- Do NOT use LaTeX notation or any form of markup
+
+Focus primarily on information from the provided text, but you may supplement with general knowledge when appropriate to provide a complete answer.
+                """.strip()
+                
+                # Get answer using Chat completions API with enhanced prompting
                 response = openai.ChatCompletion.create(
                     model=model,
                     messages=[
-                        {"role": "system", "content": "You are a helpful assistant that answers questions based on knowledge you have and also the provided document text."},
-                        {"role": "user", "content": f"Based on knowledge you have and this content:\n\n{context}\n\nAnswer this question: {question}, do not output latex"}
+                        {"role": "system", "content": system_message},
+                        {"role": "user", "content": user_prompt}
                     ],
                     max_tokens=max_output_tokens,
-                    temperature=0.5
+                    temperature=0.3
                 )
                 
                 answer = response.choices[0].message.content.strip()
