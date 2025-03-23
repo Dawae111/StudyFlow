@@ -294,24 +294,39 @@ export class QAHandler {
 
         // Create a more compact model selector dropdown like OpenAI's UI
         const selectorContainer = document.createElement('div');
-        selectorContainer.className = 'model-selector-container mb-2 relative';
+        selectorContainer.className = 'model-selector-container mb-4 relative';
         selectorContainer.id = 'model-selector';
 
-        // Create a dropdown button that shows the current model
+        // Create a dropdown button that shows the current model - inline layout
         const buttonHTML = `
-            <button id="model-dropdown-btn" class="flex items-center justify-between w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold px-3 py-2 rounded text-sm">
-                <span id="current-model-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${this.selectedModel}</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
+            <div class="flex items-center">
+                <div class="text-sm text-gray-600 mr-2">Model:</div>
+                <button id="model-dropdown-btn" class="flex items-center bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold px-3 py-1 rounded text-sm" style="width: auto; min-width: fit-content;">
+                    <span id="current-model-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${this.selectedModel}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+            </div>
         `;
 
         selectorContainer.innerHTML = buttonHTML;
 
-        // Insert before the question input
+        // Insert before the question input's parent element (to position it above)
         const qaContainer = this.elements.questionInput.parentElement;
-        qaContainer.insertBefore(selectorContainer, this.elements.questionInput);
+        qaContainer.parentElement.insertBefore(selectorContainer, qaContainer);
+
+        // Style the question input container to look like modern chat interface
+        const questionInputContainer = qaContainer;
+        questionInputContainer.className = 'flex items-center rounded-full border border-gray-300 bg-white overflow-hidden shadow-sm hover:shadow transition-shadow px-4 mb-4';
+
+        // Style the question input
+        this.elements.questionInput.className = 'flex-1 py-3 px-1 focus:outline-none';
+        this.elements.questionInput.placeholder = 'Ask a question about this content...';
+
+        // Style the ask button to align properly with the input border
+        this.elements.askButton.className = 'flex items-center justify-center h-8 ml-2 text-indigo-600 hover:text-indigo-800 font-medium px-4 rounded-full bg-indigo-50 hover:bg-indigo-100 transition-colors';
+        this.elements.askButton.innerHTML = 'Ask';
 
         // Create floating menu and add it directly to the body
         const floatingMenu = document.createElement('div');
@@ -342,8 +357,21 @@ export class QAHandler {
         menuTitle.textContent = 'Select Model';
         floatingMenu.appendChild(menuTitle);
 
-        // Add the options
+        // Define preferred order for models
+        const modelOrder = ['gpt-3.5-turbo', 'gpt-4-turbo', 'gpt-4'];
+
+        // Filter available models to only include ones we want to show in our preferred order
+        const orderedModels = modelOrder.filter(model => this.models[model]);
+
+        // Add any other models that might be available but not in our preferred order
         Object.keys(this.models).forEach(model => {
+            if (!orderedModels.includes(model)) {
+                orderedModels.push(model);
+            }
+        });
+
+        // Add the options in the specified order
+        orderedModels.forEach(model => {
             const option = document.createElement('div');
             option.className = 'model-option';
             option.dataset.model = model;
