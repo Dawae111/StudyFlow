@@ -208,37 +208,15 @@ export class DocumentViewer {
         const currentPage = page.page_number;
 
         return `
-            <div class="relative mb-1 h-[70vh]" id="pdf-container-wrapper">
-                <div class="absolute top-1 left-1 right-1 flex justify-between items-center z-10 bg-white bg-opacity-80 rounded p-1 text-xs">
-                    <p class="text-gray-500 italic">${pdfLabel} - ${this.documentData.pages.length} pages</p>
-                    <a href="${this.documentData.download_url}" download class="text-indigo-600 hover:underline flex items-center">
-                        <i class="fas fa-download mr-1"></i> Download
-                    </a>
-                </div>
-                
-                <!-- Pagination Controls - Center of screen -->
-                <div class="absolute top-1/2 left-0 right-0 flex justify-between items-center z-20 px-2 pointer-events-none">
-                    <button id="prev-page-btn-big" class="px-3 py-3 bg-gray-800 bg-opacity-50 text-white rounded-full hover:bg-opacity-70 pointer-events-auto ${currentPage === 1 ? 'opacity-25 cursor-not-allowed' : ''}">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <button id="next-page-btn-big" class="px-3 py-3 bg-gray-800 bg-opacity-50 text-white rounded-full hover:bg-opacity-70 pointer-events-auto ${currentPage === totalPages ? 'opacity-25 cursor-not-allowed' : ''}">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-                
-                <div class="pdf-container h-screen relative">
-                    <div id="pdf-loading" class="hidden">
-                        <div class="flex items-center">
-                            <div class="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-indigo-600 mr-2"></div>
-                            <span>Loading PDF...</span>
-                        </div>
+            <div class="relative mb-1 h-full" id="pdf-container-wrapper">
+                <div class="absolute top-1 left-1 right-1 flex justify-between items-center z-10 bg-white bg-opacity-80 rounded p-2 text-xs">
+                    <!-- Left: PDF Info -->
+                    <div class="flex-shrink-0">
+                        <p class="text-gray-500 italic">${pdfLabel} - ${this.documentData.pages.length} pages</p>
                     </div>
-                    <div id="pdf-viewer" class="h-full overflow-auto"></div>
-                </div>
-                
-                <!-- Text Action Buttons Bar -->
-                <div id="text-action-bar" class="absolute top-14 left-1 right-1 flex justify-center items-center z-20 bg-white bg-opacity-95 shadow-sm rounded p-2 text-xs">
-                    <div class="flex items-center space-x-2">
+                    
+                    <!-- Center: Text Action Buttons -->
+                    <div class="flex items-center space-x-2 flex-grow justify-center">
                         <button id="explain-button" class="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50" disabled>
                             <i class="fas fa-lightbulb mr-1"></i> Explain
                         </button>
@@ -251,8 +229,34 @@ export class DocumentViewer {
                         <button id="clarify-button" class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 disabled:opacity-50" disabled>
                             <i class="fas fa-question-circle mr-1"></i> Clarify
                         </button>
-                        <span id="selection-info" class="text-gray-500 text-xs"></span>
                     </div>
+                    
+                    <!-- Right: Download Button -->
+                    <div class="flex-shrink-0">
+                        <a href="${this.documentData.download_url}" download class="text-indigo-600 hover:underline flex items-center">
+                            <i class="fas fa-download mr-1"></i> Download
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Pagination Controls - Center of screen -->
+                <div class="absolute top-1/2 left-0 right-0 flex justify-between items-center z-20 px-2 pointer-events-none">
+                    <button id="prev-page-btn-big" class="px-3 py-3 bg-gray-800 bg-opacity-50 text-white rounded-full hover:bg-opacity-70 pointer-events-auto ${currentPage === 1 ? 'opacity-25 cursor-not-allowed' : ''}">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button id="next-page-btn-big" class="px-3 py-3 bg-gray-800 bg-opacity-50 text-white rounded-full hover:bg-opacity-70 pointer-events-auto ${currentPage === totalPages ? 'opacity-25 cursor-not-allowed' : ''}">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                
+                <div class="pdf-container h-screen relative pt-10">
+                    <div id="pdf-loading" class="hidden">
+                        <div class="flex items-center">
+                            <div class="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-indigo-600 mr-2"></div>
+                            <span>Loading PDF...</span>
+                        </div>
+                    </div>
+                    <div id="pdf-viewer" class="h-full overflow-auto"></div>
                 </div>
                 
                 <div class="absolute bottom-1 left-1 right-1 flex justify-between items-center z-20 bg-white bg-opacity-95 shadow-sm rounded p-2 text-xs">
@@ -286,7 +290,10 @@ export class DocumentViewer {
                         </button>
                     </div>
                 </div>
+                
+                <span id="selection-info" class="absolute top-12 left-1/2 transform -translate-x-1/2 bg-white bg-opacity-75 px-2 py-1 rounded text-xs text-gray-500 hidden"></span>
             </div>
+            
             <div id="extracted-text-container" class="mt-1 p-2 border rounded text-xs whitespace-pre-wrap bg-gray-50 hidden max-h-[20vh] overflow-auto">
                 ${page.text}
             </div>
@@ -874,8 +881,11 @@ export class DocumentViewer {
             
             const viewportOriginal = page.getViewport({ scale: 1.0 });
             const containerWidth = pdfContainer.clientWidth - 20;
-            const scale = (containerWidth / viewportOriginal.width) * this.pdfCurrentZoom;
-            
+            const containerHeight = pdfContainer.clientHeight - 60;
+            const widthScale = containerWidth / viewportOriginal.width;
+            const heightScale = containerHeight / viewportOriginal.height;
+            const scale = Math.min(widthScale, heightScale) * this.pdfCurrentZoom;
+
             const viewport = page.getViewport({ scale });
             
             pageContainer.style.width = `${viewport.width}px`;
