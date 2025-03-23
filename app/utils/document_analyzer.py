@@ -140,7 +140,7 @@ def generate_summary(text, model=None):
                 model=model,
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant that clarify contents and help user understand contents confusing."},
-                    {"role": "user", "content": f"Explain and clarify concept and ideas of the following text:\n\n{text}, do not output latex"}
+                    {"role": "user", "content": f"In bullet points, explain and clarify concept and ideas of the following text:\n\n{text}, and this text is directly shown for user, do not output markup or latex."}
                 ],
                 max_tokens=150,
                 temperature=0.3

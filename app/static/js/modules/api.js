@@ -31,22 +31,29 @@ export const api = {
     },
 
     async askQuestion(question, fileId, pageId, model = null) {
+        console.log(`API: Sending Q&A request - File: ${fileId}, Page: ${pageId}, Question: "${question.substring(0, 30)}..."`);
+
         const payload = {
             question,
             fileId,
-            pageId
+            pageId: pageId ? pageId.toString() : null  // Ensure pageId is converted to string
         };
 
         if (model) {
             payload.model = model;
         }
 
+        console.log('API: Full Q&A payload:', payload);
+
         const response = await fetch('/api/ask', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        return response.json();
+
+        const result = await response.json();
+        console.log('API: Q&A response received:', result);
+        return result;
     },
 
     async saveNotes(pageId, notes) {
