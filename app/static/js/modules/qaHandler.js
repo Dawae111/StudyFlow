@@ -80,10 +80,11 @@ export class QAHandler {
                                     </div>
                                 `;
                             } else if (item.answer) {
+                                const formattedAnswer = this.markdownToHtml(item.answer);
                                 questionElement.innerHTML = `
                                     <p class="font-semibold">Q: ${item.question}</p>
                                     <div class="answer mt-2">
-                                        <p>A: ${item.answer}</p>
+                                        <p>A: ${formattedAnswer}</p>
                                         <p class="text-xs text-gray-500 mt-1">Answered using ${item.modelUsed || 'AI'}</p>
                                     </div>
                                 `;
@@ -220,10 +221,11 @@ export class QAHandler {
                             </div>
                         `;
                     } else if (item.answer) {
+                        const formattedAnswer = this.markdownToHtml(item.answer);
                         questionElement.innerHTML = `
                             <p class="font-semibold">Q: ${item.question}</p>
                             <div class="answer mt-2">
-                                <p>A: ${item.answer}</p>
+                                <p>A: ${formattedAnswer}</p>
                                 <p class="text-xs text-gray-500 mt-1">Answered using ${item.modelUsed || 'AI'}</p>
                             </div>
                         `;
@@ -613,8 +615,9 @@ export class QAHandler {
 
             // Add model info to the answer if provided
             const modelUsed = data.model_used || this.selectedModel || 'AI';
+            const formattedAnswer = this.markdownToHtml(data.answer);
             answerElement.innerHTML = `
-                <p>A: ${data.answer}</p>
+                <p>A: ${formattedAnswer}</p>
                 <p class="text-xs text-gray-500 mt-1">Answered using ${modelUsed}</p>
             `;
 
@@ -713,5 +716,52 @@ export class QAHandler {
     hasQuestionsForPage(pageId) {
         const pageIdString = String(pageId);
         return this.questionsByPage[pageIdString] && this.questionsByPage[pageIdString].length > 0;
+    }
+
+    markdownToHtml(text) {
+        if (!text) return '';
+
+        // Handle headings before other transformations
+        // H1 (#) is usually too large for answers, so we'll start with H2
+        text = text.replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold mt-3 mb-2">$1</h2>');
+        text = text.replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold mt-2 mb-1">$1</h3>');
+        
+        // Handle ordered lists (lines starting with 1., 2., etc.)
+        text = text.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+        
+        // Handle bullet points (lines starting with '- ')
+        text = text.replace(/^- (.+)$/gm, '<li>$1</li>');
+
+        // If we added any list items, wrap them in appropriate list elements
+        if (text.includes('<li>')) {
+            // Check if the first list item is from an ordered list
+            const isOrderedList = /^\d+\. /.test(text);
+            const listTag = isOrderedList ? 'ol class="list-decimal pl-5 space-y-1"' : 'ul class="list-disc pl-5 space-y-1"';
+            
+            text = text.replace(/<li>(.+)<\/li>/g, `<${listTag}><li>$1</li></${listTag.split(' ')[0]}>`);
+            // Clean up duplicate tags that might occur from regex
+            text = text.replace(/<\/ul>\s*<ul class="list-disc pl-5 space-y-1">/g, '');
+            text = text.replace(/<\/ol>\s*<ol class="list-decimal pl-5 space-y-1">/g, '');
+        }
+
+        // Handle code blocks (```code```)
+        text = text.replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-100 p-2 rounded text-sm overflow-x-auto my-2"><code>$1</code></pre>');
+        
+        // Handle inline code (`code`)
+        text = text.replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 rounded text-sm">$1</code>');
+
+        // Handle bold text (**text**)
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        
+        // Handle italic text (*text*)
+        text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+        // Handle links [text](url)
+        text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:underline" target="_blank">$1</a>');
+
+        // Handle line breaks
+        text = text.replace(/\n/g, '<br>');
+
+        return text;
     }
 }
