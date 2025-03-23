@@ -852,95 +852,117 @@ export class DocumentViewer {
         if (!this.documentData || this.documentData.file_type !== 'pdf') {
             return;
         }
-
+    
         const pdfContainer = document.getElementById('pdf-viewer');
         if (!pdfContainer) {
             console.error('PDF container not found');
             return;
         }
-
+    
         const loadingIndicator = document.getElementById('pdf-loading');
         if (loadingIndicator) loadingIndicator.classList.remove('hidden');
-
+    
         pdfContainer.innerHTML = '';
-
+    
         try {
             if (!this.pdfDocument) {
                 const loadingTask = pdfjsLib.getDocument(this.documentData.file_url);
                 this.pdfDocument = await loadingTask.promise;
                 console.log(`PDF loaded with ${this.pdfDocument.numPages} pages`);
             }
-
+    
             if (pageNumber < 1 || pageNumber > this.pdfDocument.numPages) {
                 throw new Error(`Invalid page number: ${pageNumber}`);
             }
-
+    
             if (this.pdfPageRendering) {
                 this.pdfPagePending = pageNumber;
                 return;
             }
-
+    
             this.pdfPageRendering = true;
-            
+    
             const page = await this.pdfDocument.getPage(pageNumber);
-            
+    
             const pageContainer = document.createElement('div');
             pageContainer.className = 'page-container';
             pageContainer.dataset.pageNumber = pageNumber;
             pdfContainer.appendChild(pageContainer);
-            
+    
             const viewportOriginal = page.getViewport({ scale: 1.0 });
             const containerWidth = pdfContainer.clientWidth - 20;
             const containerHeight = pdfContainer.clientHeight - 60;
+    
+            // This calculation is correct and should be preserved
             const widthScale = containerWidth / viewportOriginal.width;
             const heightScale = containerHeight / viewportOriginal.height;
             const scale = Math.min(widthScale, heightScale) * this.pdfCurrentZoom;
-
+    
             const viewport = page.getViewport({ scale });
-            
+    
             pageContainer.style.width = `${viewport.width}px`;
             pageContainer.style.height = `${viewport.height}px`;
-            
+    
             const canvas = document.createElement('canvas');
             canvas.className = 'pdf-canvas';
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
             pageContainer.appendChild(canvas);
-            
+    
+            const context = canvas.getContext('2d');
+            const outputScale = window.devicePixelRatio || 1;
+    
+            // Set physical canvas size to handle high-DPI
+            canvas.width = Math.floor(viewport.width * outputScale);
+            canvas.height = Math.floor(viewport.height * outputScale);
+    
+            // Set display size through CSS
+            canvas.style.width = `${viewport.width}px`;
+            canvas.style.height = `${viewport.height}px`;
+    
+            // FIXED: Don't apply the scale transformation twice
+            // Remove either this transform array OR the context.scale call below
             const renderContext = {
-                canvasContext: canvas.getContext('2d'),
-                viewport
+                canvasContext: context,
+                viewport,
+                // transform: [outputScale, 0, 0, outputScale, 0, 0] // Remove this line
             };
-            
+    
+            // Apply the pixel ratio scale to the context before rendering
+            context.scale(outputScale, outputScale);
+    
             const renderTask = page.render(renderContext);
-            
+    
+            // 🎯 Improved Text Layer (Aligned with High-Res Scaling)
             const textLayerDiv = document.createElement('div');
             textLayerDiv.className = 'text-layer';
+            textLayerDiv.style.width = `${viewport.width}px`;
+            textLayerDiv.style.height = `${viewport.height}px`;
+    
             pageContainer.appendChild(textLayerDiv);
-            
+    
             const textContent = await page.getTextContent();
             pdfjsLib.renderTextLayer({
                 textContent,
                 container: textLayerDiv,
                 viewport,
-                textDivs: []
+                textDivs: [],
+                enhanceTextSelection: true
             });
-            
+    
             await renderTask.promise;
-            
+    
             this.enableTextActionButtons();
-            
+    
             const zoomLevelEl = document.getElementById('zoom-level');
             if (zoomLevelEl) zoomLevelEl.textContent = `${Math.round(this.pdfCurrentZoom * 100)}%`;
-            
+    
             this.pdfPageRendering = false;
-            
+    
             if (this.pdfPagePending !== null) {
                 const pendingPage = this.pdfPagePending;
                 this.pdfPagePending = null;
                 this.renderPdf(pendingPage);
             }
-        
+    
         } catch (error) {
             console.error('Error rendering PDF:', error);
             pdfContainer.innerHTML = `
@@ -955,6 +977,7 @@ export class DocumentViewer {
             if (loadingIndicator) loadingIndicator.classList.add('hidden');
         }
     }
+    
 
     enableTextActionButtons() {
         const actionButtons = [
