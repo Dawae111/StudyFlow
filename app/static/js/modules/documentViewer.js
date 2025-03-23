@@ -145,7 +145,7 @@ export class DocumentViewer {
                 this.pdfDocument = null;
                 this.lastDocumentId = this.getDocumentId();
             }
-            
+
             setTimeout(() => {
                 this.renderPdf(this.currentPageId);
                 this.setupZoomControls();
@@ -267,10 +267,10 @@ export class DocumentViewer {
                         <span class="text-gray-700 mx-1">Page</span>
                         <select id="page-selector" class="bg-white border rounded px-2 py-1 text-xs">
                             ${Array.from({ length: totalPages }, (_, i) =>
-                                `<option value="${i + 1}" ${i + 1 === currentPage ? 'selected' : ''}>
+            `<option value="${i + 1}" ${i + 1 === currentPage ? 'selected' : ''}>
                                     ${i + 1}
                                 </option>`
-                            ).join('')}
+        ).join('')}
                         </select>
                         <span class="text-gray-700 mx-1">of ${totalPages}</span>
                         <button id="next-page-btn" class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 ml-1 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}">
@@ -656,7 +656,7 @@ export class DocumentViewer {
             clearInterval(this.pdfCheckInterval);
             this.pdfCheckInterval = null;
         }
-        
+
         if (this.pdfDocument) {
         }
     }
@@ -666,15 +666,15 @@ export class DocumentViewer {
         const discussButton = document.getElementById('discuss-button');
         const summarizeButton = document.getElementById('summarize-button');
         const clarifyButton = document.getElementById('clarify-button');
-    
+
         if (!explainButton || !discussButton || !summarizeButton || !clarifyButton) {
             return;
         }
-    
+
         [explainButton, discussButton, summarizeButton, clarifyButton].forEach(btn => {
             btn.disabled = false;
         });
-    
+
         async function copyTextToClipboard(text) {
             if (!text) return;
             if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -700,18 +700,18 @@ export class DocumentViewer {
             }
             document.body.removeChild(tempTextArea);
         }
-        
-    
+
+
         function getUserSelectedText() {
             const selection = window.getSelection();
             return selection.toString().trim() || "";
         }
-    
+
         const handleActionClick = async (actionName) => {
             const selectedText = getUserSelectedText();
-    
+
             await copyTextToClipboard(selectedText);
-    
+
             let prompt;
             switch (actionName) {
                 case 'explain':
@@ -729,10 +729,10 @@ export class DocumentViewer {
                 default:
                     prompt = selectedText;
             }
-    
+
             this.sendToQATab(prompt);
         };
-    
+
         explainButton.addEventListener('click', () => handleActionClick('explain'));
         discussButton.addEventListener('click', () => handleActionClick('discuss'));
         summarizeButton.addEventListener('click', () => handleActionClick('summarize'));
@@ -842,117 +842,141 @@ export class DocumentViewer {
         if (!this.documentData || this.documentData.file_type !== 'pdf') {
             return;
         }
-    
+
         const pdfContainer = document.getElementById('pdf-viewer');
         if (!pdfContainer) {
             console.error('PDF container not found');
             return;
         }
-    
+
         const loadingIndicator = document.getElementById('pdf-loading');
         if (loadingIndicator) loadingIndicator.classList.remove('hidden');
-    
+
         pdfContainer.innerHTML = '';
-    
+
         try {
             if (!this.pdfDocument) {
                 const loadingTask = pdfjsLib.getDocument(this.documentData.file_url);
                 this.pdfDocument = await loadingTask.promise;
                 console.log(`PDF loaded with ${this.pdfDocument.numPages} pages`);
             }
-    
-            if (pageNumber < 1 || pageNumber > this.pdfDocument.numPages) {
-                throw new Error(`Invalid page number: ${pageNumber}`);
+
+            // Create a container for all pages
+            const pagesContainer = document.createElement('div');
+            pagesContainer.className = 'pdf-pages-container';
+            pdfContainer.appendChild(pagesContainer);
+
+            // Calculate the scale based on container width
+            const containerWidth = pdfContainer.clientWidth - 40; // Account for padding
+            const firstPage = await this.pdfDocument.getPage(1);
+            const viewportOriginal = firstPage.getViewport({ scale: 1.0 });
+            const scale = (containerWidth / viewportOriginal.width) * this.pdfCurrentZoom;
+
+            // Render all pages
+            for (let i = 1; i <= this.pdfDocument.numPages; i++) {
+                const page = await this.pdfDocument.getPage(i);
+                const viewport = page.getViewport({ scale });
+
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'pdf-page-container';
+                pageContainer.dataset.pageNumber = i;
+                pagesContainer.appendChild(pageContainer);
+
+                const canvas = document.createElement('canvas');
+                canvas.className = 'pdf-canvas';
+
+                // Handle high-DPI displays
+                const context = canvas.getContext('2d');
+                const outputScale = window.devicePixelRatio || 1;
+
+                // Set physical canvas size to handle high-DPI
+                canvas.width = Math.floor(viewport.width * outputScale);
+                canvas.height = Math.floor(viewport.height * outputScale);
+
+                // Set display size through CSS
+                canvas.style.width = `${viewport.width}px`;
+                canvas.style.height = `${viewport.height}px`;
+
+                // Apply the pixel ratio scale to the context
+                context.scale(outputScale, outputScale);
+
+                // Append the canvas to the page container
+                pageContainer.appendChild(canvas);
+
+                const renderContext = {
+                    canvasContext: context,
+                    viewport
+                };
+
+                const renderTask = page.render(renderContext);
+
+                // Create text layer for text selection
+                const textLayerDiv = document.createElement('div');
+                textLayerDiv.className = 'text-layer';
+                textLayerDiv.style.width = `${viewport.width}px`;
+                textLayerDiv.style.height = `${viewport.height}px`;
+                pageContainer.appendChild(textLayerDiv);
+
+                // Create highlight layer for text highlighting
+                const highlightLayerDiv = document.createElement('div');
+                highlightLayerDiv.className = 'highlight-layer';
+                highlightLayerDiv.style.width = `${viewport.width}px`;
+                highlightLayerDiv.style.height = `${viewport.height}px`;
+                pageContainer.appendChild(highlightLayerDiv);
+
+                const textContent = await page.getTextContent();
+                pdfjsLib.renderTextLayer({
+                    textContent,
+                    container: textLayerDiv,
+                    viewport,
+                    textDivs: [],
+                    enhanceTextSelection: true
+                });
+
+                await renderTask.promise;
             }
-    
-            if (this.pdfPageRendering) {
-                this.pdfPagePending = pageNumber;
-                return;
-            }
-    
-            this.pdfPageRendering = true;
-    
-            const page = await this.pdfDocument.getPage(pageNumber);
-    
-            const pageContainer = document.createElement('div');
-            pageContainer.className = 'page-container';
-            pageContainer.dataset.pageNumber = pageNumber;
-            pdfContainer.appendChild(pageContainer);
-    
-            const viewportOriginal = page.getViewport({ scale: 1.0 });
-            const containerWidth = pdfContainer.clientWidth - 20;
-            const containerHeight = pdfContainer.clientHeight - 60;
-    
-            // This calculation is correct and should be preserved
-            const widthScale = containerWidth / viewportOriginal.width;
-            const heightScale = containerHeight / viewportOriginal.height;
-            const scale = Math.min(widthScale, heightScale) * this.pdfCurrentZoom;
-    
-            const viewport = page.getViewport({ scale });
-    
-            pageContainer.style.width = `${viewport.width}px`;
-            pageContainer.style.height = `${viewport.height}px`;
-    
-            const canvas = document.createElement('canvas');
-            canvas.className = 'pdf-canvas';
-            pageContainer.appendChild(canvas);
-    
-            const context = canvas.getContext('2d');
-            const outputScale = window.devicePixelRatio || 1;
-    
-            // Set physical canvas size to handle high-DPI
-            canvas.width = Math.floor(viewport.width * outputScale);
-            canvas.height = Math.floor(viewport.height * outputScale);
-    
-            // Set display size through CSS
-            canvas.style.width = `${viewport.width}px`;
-            canvas.style.height = `${viewport.height}px`;
-    
-            // FIXED: Don't apply the scale transformation twice
-            // Remove either this transform array OR the context.scale call below
-            const renderContext = {
-                canvasContext: context,
-                viewport,
-                // transform: [outputScale, 0, 0, outputScale, 0, 0] // Remove this line
-            };
-    
-            // Apply the pixel ratio scale to the context before rendering
-            context.scale(outputScale, outputScale);
-    
-            const renderTask = page.render(renderContext);
-    
-            // 🎯 Improved Text Layer (Aligned with High-Res Scaling)
-            const textLayerDiv = document.createElement('div');
-            textLayerDiv.className = 'text-layer';
-            textLayerDiv.style.width = `${viewport.width}px`;
-            textLayerDiv.style.height = `${viewport.height}px`;
-    
-            pageContainer.appendChild(textLayerDiv);
-    
-            const textContent = await page.getTextContent();
-            pdfjsLib.renderTextLayer({
-                textContent,
-                container: textLayerDiv,
-                viewport,
-                textDivs: [],
-                enhanceTextSelection: true
-            });
-    
-            await renderTask.promise;
-    
+
             this.enableTextActionButtons();
-    
+
             const zoomLevelEl = document.getElementById('zoom-level');
             if (zoomLevelEl) zoomLevelEl.textContent = `${Math.round(this.pdfCurrentZoom * 100)}%`;
-    
-            this.pdfPageRendering = false;
-    
-            if (this.pdfPagePending !== null) {
-                const pendingPage = this.pdfPagePending;
-                this.pdfPagePending = null;
-                this.renderPdf(pendingPage);
+
+            // Set up scroll event listener to track current page
+            pdfContainer.addEventListener('scroll', () => {
+                this.updateCurrentPageFromScroll();
+            });
+
+            // Add throttling to the scroll event to improve performance
+            let scrollTimeout;
+            pdfContainer.addEventListener('scroll', () => {
+                if (scrollTimeout) {
+                    window.cancelAnimationFrame(scrollTimeout);
+                }
+                scrollTimeout = window.requestAnimationFrame(() => {
+                    this.updateCurrentPageFromScroll();
+                });
+            });
+
+            // Scroll to the requested page
+            this.scrollToPage(pageNumber);
+
+            // Update the current page ID and trigger necessary updates
+            if (pageNumber !== this.currentPageId) {
+                this.currentPageId = pageNumber;
+                this.updateActiveThumbnail();
+                this.updateRightPanel();
+
+                // Dispatch page change event
+                const event = new CustomEvent('pageChanged', {
+                    detail: {
+                        pageNumber,
+                        totalPages: this.documentData.pages.length,
+                        page: this.documentData.pages[pageNumber - 1]
+                    }
+                });
+                document.dispatchEvent(event);
             }
-    
+
         } catch (error) {
             console.error('Error rendering PDF:', error);
             pdfContainer.innerHTML = `
@@ -967,7 +991,100 @@ export class DocumentViewer {
             if (loadingIndicator) loadingIndicator.classList.add('hidden');
         }
     }
-    
+
+    updateCurrentPageFromScroll() {
+        const pdfContainer = document.getElementById('pdf-viewer');
+        if (!pdfContainer) return;
+
+        const pages = pdfContainer.getElementsByClassName('pdf-page-container');
+        if (!pages.length) return;
+
+        // Get the container's scroll position and dimensions
+        const containerRect = pdfContainer.getBoundingClientRect();
+        const containerTop = pdfContainer.scrollTop;
+        const containerHeight = containerRect.height;
+        const containerMiddle = containerTop + (containerHeight / 2);
+
+        // Find the page that's most visible in the viewport
+        let mostVisiblePage = null;
+        let minDistanceFromCenter = Infinity;
+
+        Array.from(pages).forEach(page => {
+            const pageRect = page.getBoundingClientRect();
+            const pageTop = pageRect.top - containerRect.top;
+            const pageBottom = pageRect.bottom - containerRect.top;
+            const pageMiddle = pageTop + (pageRect.height / 2);
+
+            // Calculate distance from center of viewport
+            const distanceFromCenter = Math.abs(pageMiddle - containerHeight / 2);
+
+            if (distanceFromCenter < minDistanceFromCenter) {
+                minDistanceFromCenter = distanceFromCenter;
+                mostVisiblePage = page;
+            }
+        });
+
+        if (mostVisiblePage) {
+            const pageNumber = parseInt(mostVisiblePage.dataset.pageNumber);
+            if (pageNumber !== this.currentPageId) {
+                console.log(`Page changed from ${this.currentPageId} to ${pageNumber}`);
+                this.currentPageId = pageNumber;
+
+                // Update the page counter
+                const pageCounter = document.getElementById('page-counter');
+                if (pageCounter) {
+                    pageCounter.textContent = `Page ${pageNumber} of ${this.documentData.pages.length}`;
+                }
+
+                // Update the page selector dropdown
+                const pageSelector = document.getElementById('page-selector');
+                if (pageSelector) {
+                    pageSelector.value = pageNumber;
+                }
+
+                // Update the active thumbnail
+                this.updateActiveThumbnail();
+
+                // Update the right panel content
+                this.updateRightPanel();
+
+                // Dispatch a custom event for other components to react to page changes
+                const event = new CustomEvent('pageChanged', {
+                    detail: {
+                        pageNumber,
+                        totalPages: this.documentData.pages.length,
+                        page: this.documentData.pages[pageNumber - 1]
+                    }
+                });
+                document.dispatchEvent(event);
+            }
+        }
+    }
+
+    scrollToPage(pageNum) {
+        const pdfContainer = document.getElementById('pdf-viewer');
+        if (!pdfContainer) return;
+
+        const pages = pdfContainer.getElementsByClassName('pdf-page-container');
+        if (!pages.length) return;
+
+        const targetPage = Array.from(pages).find(page =>
+            parseInt(page.dataset.pageNumber) === pageNum
+        );
+
+        if (targetPage) {
+            // Calculate the scroll position to center the page
+            const containerRect = pdfContainer.getBoundingClientRect();
+            const pageRect = targetPage.getBoundingClientRect();
+            const scrollTop = targetPage.offsetTop - (containerRect.height - pageRect.height) / 2;
+
+            // Smooth scroll to the calculated position
+            pdfContainer.scrollTo({
+                top: scrollTop,
+                behavior: 'smooth'
+            });
+        }
+    }
 
     enableTextActionButtons() {
         const actionButtons = [
@@ -976,7 +1093,7 @@ export class DocumentViewer {
             document.getElementById('summarize-button'),
             document.getElementById('clarify-button')
         ];
-        
+
         actionButtons.forEach(btn => {
             if (btn) btn.disabled = false;
         });
@@ -985,14 +1102,14 @@ export class DocumentViewer {
     setupZoomControls() {
         const zoomInBtn = document.getElementById('zoom-in-btn');
         const zoomOutBtn = document.getElementById('zoom-out-btn');
-        
+
         if (zoomInBtn) {
             zoomInBtn.addEventListener('click', () => {
                 this.pdfCurrentZoom = Math.min(this.pdfCurrentZoom + 0.2, 3.0);
                 this.renderPdf(this.currentPageId);
             });
         }
-        
+
         if (zoomOutBtn) {
             zoomOutBtn.addEventListener('click', () => {
                 this.pdfCurrentZoom = Math.max(this.pdfCurrentZoom - 0.2, 0.5);
