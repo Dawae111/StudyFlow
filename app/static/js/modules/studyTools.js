@@ -7,6 +7,7 @@ export class StudyTools {
         this.currentPageId = 1;
         this.models = null;
         this.selectedSummaryModel = null;
+        this.pageData = {};  // Store page data including summaries
         this.initializeEventListeners();
         this.loadAvailableModels();
     }
@@ -160,7 +161,8 @@ export class StudyTools {
 
         console.log(`StudyTools: Updating content for page ${page.page_number}`);
 
-        // Store the current page data for Q&A
+        // Store the current page data in our cache
+        this.pageData[page.page_number] = page;
         this.currentPage = page;
 
         // Update the UI
@@ -430,19 +432,22 @@ export class StudyTools {
     // New method to handle updated summaries
     handleSummariesUpdated(documentData) {
         if (!documentData || !documentData.pages) {
-            console.warn('Received invalid document data for summary update');
+            console.warn('StudyTools: Received invalid document data in handleSummariesUpdated');
             return;
         }
 
-        console.log('Received updated summaries for document');
+        console.log('StudyTools: Handling updated summaries');
 
-        // Update current page content if we have an active page
-        if (this.currentPageId) {
-            const currentPage = documentData.pages.find(p => p.page_number === this.currentPageId);
-            if (currentPage) {
-                console.log(`Updating content for current page ${this.currentPageId}`);
-                this.updateContent(currentPage);
+        // Update our cached page data with the new summaries
+        documentData.pages.forEach(page => {
+            const pageNumber = page.page_number;
+            this.pageData[pageNumber] = page;
+
+            // If this is the current page, update the UI
+            if (pageNumber === this.currentPageId) {
+                console.log(`StudyTools: Updating UI for current page ${pageNumber}`);
+                this.updateSummary(page.summary);
             }
-        }
+        });
     }
 }
