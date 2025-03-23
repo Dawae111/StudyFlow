@@ -67,29 +67,29 @@ export class QAHandler {
                                 return null;
                             }
 
-                            // Recreate the element
+                            // Recreate the element - we'll create a fresh one each time
                             const questionElement = document.createElement('div');
                             questionElement.className = 'question-container p-4 bg-gray-50 rounded-lg mb-3';
 
                             // Format HTML based on whether we have an answer or error
                             if (item.error) {
                                 questionElement.innerHTML = `
-                                    <p class="font-semibold">You: ${item.question}</p>
+                                    <p class="font-semibold">Q: ${item.question}</p>
                                     <div class="answer mt-2">
                                         <p class="text-red-500">Error: Failed to get an answer. Please try again.</p>
                                     </div>
                                 `;
                             } else if (item.answer) {
                                 questionElement.innerHTML = `
-                                    <p class="font-semibold">You: ${item.question}</p>
+                                    <p class="font-semibold">Q: ${item.question}</p>
                                     <div class="answer mt-2">
-                                        <p>${item.answer}</p>
+                                        <p>A: ${item.answer}</p>
                                         <p class="text-xs text-gray-500 mt-1">Answered using ${item.modelUsed || 'AI'}</p>
                                     </div>
                                 `;
                             } else {
                                 questionElement.innerHTML = `
-                                    <p class="font-semibold">You: ${item.question}</p>
+                                    <p class="font-semibold">Q: ${item.question}</p>
                                     <div class="answer mt-2">
                                         <p class="text-gray-500">Loading answer...</p>
                                     </div>
@@ -106,9 +106,6 @@ export class QAHandler {
                 } catch (e) {
                     console.error("Error parsing saved questions data:", e);
                 }
-
-                // Display questions for current page
-                this.displayQuestionsForCurrentPage();
 
                 console.log("After loading from storage, questionsByPage:", Object.keys(this.questionsByPage));
             } else {
@@ -145,23 +142,20 @@ export class QAHandler {
     }
 
     onPageChanged(page) {
+        if (!page) {
+            console.warn('Page changed event received with no page data');
+            return;
+        }
+
         // Update current page ID, ensure it's a string for consistent comparison
         const newPageId = String(page.page_number);
+        console.log(`QAHandler: Page changed to ${newPageId}`);
 
-        // Only update if actually changed
-        if (newPageId !== this.currentPageId) {
-            console.log(`Switched to page: ${newPageId} (was: ${this.currentPageId})`);
-            this.currentPageId = newPageId;
+        // Always update the current page ID
+        this.currentPageId = newPageId;
 
-            // Display questions for this page
-            this.displayQuestionsForCurrentPage();
-
-            // Explicitly check if we need to reload questions
-            if (Object.keys(this.questionsByPage).length === 0) {
-                console.log("No questions found for any page, attempting to reload from storage");
-                this.loadQuestionsFromStorage();
-            }
-        }
+        // Display questions for this page (loadQuestionsFromStorage is not needed on every page change)
+        this.displayQuestionsForCurrentPage();
     }
 
     displayQuestionsForCurrentPage() {
@@ -177,26 +171,85 @@ export class QAHandler {
         // Get questions for current page - ensure we use string comparison
         const pageIdString = String(this.currentPageId);
         console.log(`Looking for questions for page: ${pageIdString}`);
-        console.log(`Available pages with questions: ${Object.keys(this.questionsByPage).join(', ') || 'none'}`);
 
+        // Double check if we need to reload from storage
+        if (Object.keys(this.questionsByPage).length === 0) {
+            console.log('No questions in memory, loading from storage first');
+            this.loadQuestionsFromStorage();
+        }
+
+        // IMPORTANT: Get questions AFTER potentially loading from storage
         const pageQuestions = this.questionsByPage[pageIdString] || [];
         console.log(`Found ${pageQuestions.length} questions for page ${pageIdString}`);
+        console.log('Questions in memory:', pageQuestions);
 
-        if (pageQuestions.length === 0) {
+        // DEBUGGING: Log detailed question info
+        if (pageQuestions.length > 0) {
+            pageQuestions.forEach((item, i) => {
+                console.log(`Question ${i + 1}: ${item.question ? item.question.substring(0, 30) : 'NO QUESTION'}`);
+            });
+        }
+
+        // Check if there are any valid questions
+        const hasValidQuestions = pageQuestions.length > 0 && pageQuestions.some(q => q && q.question);
+
+        if (!hasValidQuestions) {
+            console.log('No valid questions found, showing empty state');
+            // Only show empty state if there are no questions
             const emptyState = document.createElement('div');
             emptyState.id = 'qa-empty-state';
             emptyState.className = 'empty-state text-gray-500 text-center p-4';
             emptyState.textContent = 'No questions yet for this page. Ask something!';
             this.elements.qaHistory.appendChild(emptyState);
         } else {
+            console.log(`Displaying ${pageQuestions.length} questions for page ${pageIdString}`);
             // Display them in order
-            pageQuestions.forEach(item => {
-                if (item && item.element) {
-                    this.elements.qaHistory.appendChild(item.element);
+            pageQuestions.forEach((item, index) => {
+                if (item && item.question) {
+                    // Create a new element for the question (don't use cloneNode which might have issues)
+                    const questionElement = document.createElement('div');
+                    questionElement.id = `question-${pageIdString}-${index}`;
+                    questionElement.className = 'question-container p-4 bg-gray-50 rounded-lg mb-3';
+
+                    // Create the inner HTML based on question state
+                    if (item.error) {
+                        questionElement.innerHTML = `
+                            <p class="font-semibold">Q: ${item.question}</p>
+                            <div class="answer mt-2">
+                                <p class="text-red-500">Error: Failed to get an answer. Please try again.</p>
+                            </div>
+                        `;
+                    } else if (item.answer) {
+                        questionElement.innerHTML = `
+                            <p class="font-semibold">Q: ${item.question}</p>
+                            <div class="answer mt-2">
+                                <p>A: ${item.answer}</p>
+                                <p class="text-xs text-gray-500 mt-1">Answered using ${item.modelUsed || 'AI'}</p>
+                            </div>
+                        `;
+                    } else {
+                        questionElement.innerHTML = `
+                            <p class="font-semibold">Q: ${item.question}</p>
+                            <div class="answer mt-2">
+                                <p class="text-gray-500">Loading answer...</p>
+                            </div>
+                        `;
+                    }
+
+                    this.elements.qaHistory.appendChild(questionElement);
                 } else {
                     console.warn('Invalid question item found for page', pageIdString, item);
                 }
             });
+        }
+
+        // Double-check that we don't have both questions and empty state
+        if (hasValidQuestions) {
+            const emptyState = document.getElementById('qa-empty-state');
+            if (emptyState) {
+                console.log('Removing empty state - we have questions!');
+                emptyState.remove();
+            }
         }
     }
 
@@ -340,16 +393,22 @@ export class QAHandler {
         }
 
         // Get the current page ID from the appController - ensure it's a string
-        const pageId = String(this.appController.documentViewer?.currentPageId || this.currentPageId);
-        const fileId = this.appController.currentFileId;
+        // First try to get it from the document viewer, then fallback to our stored value
+        let pageId;
+        if (this.appController && this.appController.documentViewer) {
+            pageId = String(this.appController.documentViewer.currentPageId);
+        } else {
+            pageId = String(this.currentPageId);
+        }
 
+        const fileId = this.appController.currentFileId;
         console.log(`Asking question for page: ${pageId}, file: ${fileId}`);
 
         // Add the question to the history
         const questionElement = document.createElement('div');
         questionElement.className = 'question-container p-4 bg-gray-50 rounded-lg mb-3';
         questionElement.innerHTML = `
-            <p class="font-semibold">You: ${question}</p>
+            <p class="font-semibold">Q: ${question}</p>
             <div class="answer mt-2">
                 <p class="text-gray-500">Loading answer...</p>
             </div>
@@ -382,6 +441,9 @@ export class QAHandler {
 
         // Scroll to the bottom of the history
         this.elements.qaHistory.scrollTop = this.elements.qaHistory.scrollHeight;
+
+        // Save updated questions to storage immediately to prevent loss
+        this.saveQuestionsToStorage();
 
         // Make API call asynchronously
         this.fetchAnswer(questionEntry);
@@ -443,7 +505,7 @@ export class QAHandler {
             // Add model info to the answer if provided
             const modelUsed = data.model_used || this.selectedModel || 'AI';
             answerElement.innerHTML = `
-                <p>${data.answer}</p>
+                <p>A: ${data.answer}</p>
                 <p class="text-xs text-gray-500 mt-1">Answered using ${modelUsed}</p>
             `;
 
@@ -537,4 +599,10 @@ export class QAHandler {
         }
         return false;
     }
-} 
+
+    // Helper method to check if a page has questions
+    hasQuestionsForPage(pageId) {
+        const pageIdString = String(pageId);
+        return this.questionsByPage[pageIdString] && this.questionsByPage[pageIdString].length > 0;
+    }
+}
