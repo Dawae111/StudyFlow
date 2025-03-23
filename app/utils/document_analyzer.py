@@ -2,6 +2,8 @@ import os
 import json
 import tempfile
 import importlib.util
+import time
+import re
 
 # Check if OpenAI is installed
 openai_available = importlib.util.find_spec("openai") is not None
@@ -99,6 +101,39 @@ if openai_available:
     if not openai_configured:
         print("OpenAI configuration failed, will use mock responses")
 
+def strip_markdown_formatting(text):
+    """Remove markdown formatting from text
+    
+    Args:
+        text (str): Text with potential markdown formatting
+        
+    Returns:
+        str: Clean text without markdown formatting
+    """
+    # Remove bold formatting
+    text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)
+    
+    # Remove italic formatting
+    text = re.sub(r'\*(.*?)\*', r'\1', text)
+    
+    # Remove LaTeX-style formatting like \( \) or $ $
+    text = re.sub(r'\\\((.*?)\\\)', r'\1', text)
+    text = re.sub(r'\$(.*?)\$', r'\1', text)
+    text = re.sub(r'\\\[(.*?)\\\]', r'\1', text)
+    
+    # Remove backslash before symbols (LaTeX escape)
+    text = re.sub(r'\\([_{}^])', r'\1', text)
+    
+    # Replace LaTeX-style symbols with plain text alternatives
+    text = text.replace('\\sigma', 'sigma')
+    text = text.replace('\\mu', 'mu')
+    text = text.replace('\\alpha', 'alpha')
+    text = text.replace('\\beta', 'beta')
+    text = text.replace('\\theta', 'theta')
+    text = text.replace('\\lambda', 'lambda')
+    
+    return text
+
 def generate_summary(text, model=None):
     """Generate a summary for a given text using OpenAI
     
@@ -164,20 +199,50 @@ Format your summary as follows:
 6. End with a 1-sentence conclusion or takeaway.
             """.strip()
             
-            # Generate summary using Chat completions API with enhanced prompting
-            response = openai.ChatCompletion.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system_message},
-                    {"role": "user", "content": user_prompt}
-                ],
-                max_tokens=min(int(max_context_tokens * 0.25), max_completion_tokens),  # Use the lower value
-                temperature=0.2
-            )
+            # Implement retry logic with exponential backoff for rate limits
+            max_retries = 5
+            retry_delay = 2  # Starting delay in seconds
             
-            summary = response.choices[0].message.content.strip()
-            print(f"Successfully generated summary with {model}")
-            return summary
+            for attempt in range(max_retries):
+                try:
+                    # Generate summary using Chat completions API with enhanced prompting
+                    response = openai.ChatCompletion.create(
+                        model=model,
+                        messages=[
+                            {"role": "system", "content": system_message},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        max_tokens=min(int(max_context_tokens * 0.25), max_completion_tokens),  # Use the lower value
+                        temperature=0.2
+                    )
+                    
+                    summary = response.choices[0].message.content.strip()
+                    print(f"Successfully generated summary with {model}")
+                    return summary
+                    
+                except Exception as e:
+                    error_msg = str(e)
+                    if "Rate limit" in error_msg:
+                        if attempt < max_retries - 1:
+                            wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                            
+                            # Extract the suggested wait time if available
+                            suggested_time_match = re.search(r'Please try again in (\d+\.\d+)s', error_msg)
+                            if suggested_time_match:
+                                suggested_time = float(suggested_time_match.group(1))
+                                wait_time = max(wait_time, suggested_time + 0.5)  # Add a small buffer
+                            
+                            print(f"Rate limit hit. Retrying in {wait_time} seconds... (Attempt {attempt+1}/{max_retries})")
+                            time.sleep(wait_time)
+                        else:
+                            print(f"Rate limit reached after {max_retries} attempts. Falling back to mock summary.")
+                            return generate_mock_summary(text)
+                    else:
+                        print(f"Error with OpenAI summarization using {model}: {error_msg}")
+                        return generate_mock_summary(text)
+            
+            # If we've exhausted retries, fall back to mock
+            return generate_mock_summary(text)
             
         except Exception as e:
             print(f"Error with OpenAI summarization using {model}: {str(e)}")
@@ -322,20 +387,54 @@ IMPORTANT FORMATTING RULE: You must use plain text ONLY:
 Focus primarily on information from the provided text, but you may supplement with general knowledge when appropriate to provide a complete answer.
                 """.strip()
                 
-                # Get answer using Chat completions API with enhanced prompting
-                response = openai.ChatCompletion.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": system_message},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    max_tokens=max_output_tokens,
-                    temperature=0.3
-                )
+                # Implement retry logic with exponential backoff for rate limits
+                max_retries = 5
+                retry_delay = 2  # Starting delay in seconds
                 
-                answer = response.choices[0].message.content.strip()
-                print(f"Got answer from {model} with length: {len(answer)} chars")
-                return answer
+                for attempt in range(max_retries):
+                    try:
+                        # Get answer using Chat completions API with enhanced prompting
+                        response = openai.ChatCompletion.create(
+                            model=model,
+                            messages=[
+                                {"role": "system", "content": system_message},
+                                {"role": "user", "content": user_prompt}
+                            ],
+                            max_tokens=max_output_tokens,
+                            temperature=0.3
+                        )
+                        
+                        answer = response.choices[0].message.content.strip()
+                        print(f"Got answer from {model} with length: {len(answer)} chars")
+                        
+                        # Post-process to remove any markdown formatting that might still be present
+                        answer = strip_markdown_formatting(answer)
+                        
+                        return answer
+                        
+                    except Exception as e:
+                        error_msg = str(e)
+                        if "Rate limit" in error_msg:
+                            if attempt < max_retries - 1:
+                                wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                                
+                                # Extract the suggested wait time if available
+                                suggested_time_match = re.search(r'Please try again in (\d+\.\d+)s', error_msg)
+                                if suggested_time_match:
+                                    suggested_time = float(suggested_time_match.group(1))
+                                    wait_time = max(wait_time, suggested_time + 0.5)  # Add a small buffer
+                                
+                                print(f"Rate limit hit. Retrying in {wait_time} seconds... (Attempt {attempt+1}/{max_retries})")
+                                time.sleep(wait_time)
+                            else:
+                                print(f"Rate limit reached after {max_retries} attempts. Falling back to mock answer.")
+                                return generate_mock_answer(question, file_id, context)
+                        else:
+                            print(f"Error with OpenAI Q&A using {model}: {error_msg}")
+                            return generate_mock_answer(question, file_id, context)
+                
+                # If we've exhausted retries, fall back to mock answer
+                return generate_mock_answer(question, file_id, context)
                 
             except Exception as e:
                 print(f"Error with OpenAI Q&A using {model}: {str(e)}")
