@@ -445,6 +445,7 @@ export class StudyTools {
     // Add this new method to trigger summary generation
     async triggerSummaryGeneration() {
         try {
+            return
             // Call API to generate summary for the current file
             await api.analyzeDocument(this.currentFileId, this.selectedSummaryModel);
             
