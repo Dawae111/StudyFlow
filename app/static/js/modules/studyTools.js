@@ -388,90 +388,120 @@ export class StudyTools {
         // Convert markdown to HTML if summary exists
         const formattedSummary = needsGeneration ? '' : this.markdownToHtml(summary);
 
-        if (summaryTextContainer) {
-            if (needsGeneration) {
+        // If summary needs generation, trigger the API call
+        if (needsGeneration) {
+            // Show loading UI first
+            if (summaryTextContainer) {
                 summaryTextContainer.innerHTML = `
-                <h4 class="font-semibold mb-2">Summary</h4>
-                <p class="text-gray-500">Generating summary... This may take a moment.</p>
-                <div class="mt-3 flex justify-center items-center">
-                    <div class="animate-pulse mr-2 h-2 w-2 rounded-full bg-indigo-600"></div>
-                    <div class="animate-pulse delay-75 mr-2 h-2 w-2 rounded-full bg-indigo-600"></div>
-                    <div class="animate-pulse delay-150 h-2 w-2 rounded-full bg-indigo-600"></div>
-                </div>
+                    <h4 class="font-semibold mb-2">Summary</h4>
+                    <p class="text-gray-500">Generating summary... This may take a moment.</p>
+                    <div class="mt-3 flex justify-center items-center">
+                        <div class="animate-pulse mr-2 h-2 w-2 rounded-full bg-indigo-600"></div>
+                        <div class="animate-pulse delay-75 mr-2 h-2 w-2 rounded-full bg-indigo-600"></div>
+                        <div class="animate-pulse delay-150 h-2 w-2 rounded-full bg-indigo-600"></div>
+                    </div>
                 `;
             } else {
-                summaryTextContainer.innerHTML = `
-                <h4 class="font-semibold mb-2">Summary</h4>
-                <div class="summary-content whitespace-normal break-words">
-                    <div class="text-base leading-relaxed markdown-content">${formattedSummary}</div>
-                </div>
+                this.elements.summaryContent.innerHTML = `
+                    <div class="summary-text p-4 bg-indigo-50 rounded-lg">
+                    <h4 class="font-semibold mb-2">Summary</h4>
+                    <p class="text-gray-500">Generating summary... This may take a moment.</p>
+                    <div class="mt-3 flex justify-center items-center">
+                        <div class="animate-pulse mr-2 h-2 w-2 rounded-full bg-indigo-600"></div>
+                        <div class="animate-pulse delay-75 mr-2 h-2 w-2 rounded-full bg-indigo-600"></div>
+                        <div class="animate-pulse delay-150 h-2 w-2 rounded-full bg-indigo-600"></div>
+                    </div>
+                    </div>
                 `;
             }
+            
+            // Now actually trigger the summary generation
+            if (this.currentFileId) {
+                console.log(`Auto-generating summary for page ${this.currentPageId} in file ${this.currentFileId}`);
+                this.triggerSummaryGeneration();
+            }
         } else {
-            if (needsGeneration) {
-                this.elements.summaryContent.innerHTML = `
-                <div class="summary-text p-4 bg-indigo-50 rounded-lg">
-                <h4 class="font-semibold mb-2">Summary</h4>
-                <p class="text-gray-500">Generating summary... This may take a moment.</p>
-                <div class="mt-3 flex justify-center items-center">
-                    <div class="animate-pulse mr-2 h-2 w-2 rounded-full bg-indigo-600"></div>
-                    <div class="animate-pulse delay-75 mr-2 h-2 w-2 rounded-full bg-indigo-600"></div>
-                    <div class="animate-pulse delay-150 h-2 w-2 rounded-full bg-indigo-600"></div>
-                </div>
-                </div>
+            // Continue with existing code for when summary is available...
+            if (summaryTextContainer) {
+                summaryTextContainer.innerHTML = `
+                    <h4 class="font-semibold mb-2">Summary</h4>
+                    <div class="summary-content whitespace-normal break-words">
+                        <div class="text-base leading-relaxed markdown-content">${formattedSummary}</div>
+                    </div>
                 `;
             } else {
                 this.elements.summaryContent.innerHTML = `
-                <div class="summary-text p-4 bg-indigo-50 rounded-lg">
-                <h4 class="font-semibold mb-2">Summary</h4>
-                <div class="summary-content whitespace-normal break-words">
-                    <div class="text-base leading-relaxed markdown-content">${formattedSummary}</div>
-                </div>
-                </div>
+                    <div class="summary-text p-4 bg-indigo-50 rounded-lg">
+                    <h4 class="font-semibold mb-2">Summary</h4>
+                    <div class="summary-content whitespace-normal break-words">
+                        <div class="text-base leading-relaxed markdown-content">${formattedSummary}</div>
+                    </div>
+                    </div>
                 `;
+            }
+        }
+    }
+
+    // Add this new method to trigger summary generation
+    async triggerSummaryGeneration() {
+        try {
+            // Call API to generate summary for the current file
+            await api.analyzeDocument(this.currentFileId, this.selectedSummaryModel);
+            
+            // After generating, fetch the updated document data
+            const docData = await api.fetchDocumentData(this.currentFileId);
+            
+            // Find the current page with the new summary
+            const currentPage = docData.pages.find(p => p.page_number === this.currentPageId);
+            
+            if (currentPage && currentPage.summary) {
+                console.log('Summary generation completed, updating UI');
+                // Update the summary UI with the newly generated summary
+                const summaryTextContainer = this.elements.summaryContent.querySelector('.summary-text');
+                if (summaryTextContainer) {
+                    const formattedSummary = this.markdownToHtml(currentPage.summary);
+                    summaryTextContainer.innerHTML = `
+                        <h4 class="font-semibold mb-2">Summary</h4>
+                        <div class="summary-content whitespace-normal break-words">
+                            <div class="text-base leading-relaxed markdown-content">${formattedSummary}</div>
+                        </div>
+                    `;
+                    
+                    // Update stored page data
+                    if (this.pageData[this.currentPageId]) {
+                        this.pageData[this.currentPageId].summary = currentPage.summary;
+                    }
+                    
+                    // Visual feedback that summary was updated
+                    summaryTextContainer.classList.add('bg-indigo-100');
+                    setTimeout(() => {
+                        summaryTextContainer.classList.remove('bg-indigo-100');
+                        summaryTextContainer.classList.add('bg-indigo-50');
+                    }, 1500);
+                }
+            } else {
+                console.warn('Summary generation completed but new summary not found');
+            }
+        } catch (error) {
+            console.error('Error auto-generating summary:', error);
+            // Update UI to show error
+            const summaryTextContainer = this.elements.summaryContent.querySelector('.summary-text');
+            if (summaryTextContainer) {
+                summaryTextContainer.innerHTML = `
+                    <h4 class="font-semibold mb-2">Summary</h4>
+                    <p class="text-red-500">Error generating summary. <button class="underline" id="retry-summary">Retry</button></p>
+                `;
+                
+                // Add retry button functionality
+                document.getElementById('retry-summary')?.addEventListener('click', () => {
+                    this.triggerSummaryGeneration();
+                });
             }
         }
     }
 
     updateNotes(notes) {
         this.elements.notesTextarea.value = notes || '';
-    }
-
-    async askQuestion() {
-        const question = this.elements.questionInput.value.trim();
-        if (!question) return;
-
-        console.log(`StudyTools: Asking question for file ${this.currentFileId}, page ${this.currentPageId}`);
-
-        // Check if we have valid current page info
-        if (!this.currentFileId) {
-            console.error('StudyTools: No currentFileId available for Q&A');
-            alert('Error: No document is currently loaded.');
-            return;
-        }
-
-        // Default to page 1 if no page ID is set
-        const pageId = this.currentPageId || 1;
-
-        const questionEl = this.createQuestionElement(question);
-        this.elements.qaHistory.appendChild(questionEl);
-        this.elements.questionInput.value = '';
-
-        // Ensure the new question is visible by scrolling to it
-        this.scrollToBottom();
-
-        try {
-            console.log(`StudyTools: Sending Q&A request - File: ${this.currentFileId}, Page: ${pageId}, Question: ${question}`);
-            const data = await api.askQuestion(question, this.currentFileId, pageId);
-            console.log('StudyTools: Received Q&A response:', data);
-            this.updateAnswer(questionEl, data);
-
-            // Scroll to show the answer after it's loaded
-            this.scrollToBottom();
-        } catch (error) {
-            console.error('StudyTools: Error in Q&A:', error);
-            this.showAnswerError(questionEl);
-        }
     }
 
     createQuestionElement(question) {

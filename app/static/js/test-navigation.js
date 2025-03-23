@@ -6,7 +6,7 @@
  */
 
 (function () {
-    console.log("📝 StudyFlow Test Navigation script loaded");
+    console.log("📝 Notate Test Navigation script loaded");
 
     // Wait for DOM to be ready
     document.addEventListener('DOMContentLoaded', function () {

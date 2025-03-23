@@ -1,6 +1,6 @@
-# StudyFlow
+# Notate
 
-StudyFlow is a web application that helps users engage more effectively with lecture slides, research papers, and other textual/visual materials by providing concise summaries, explanations, and an interactive Q&A interface.
+Notate is a web application that helps users engage more effectively with lecture slides, research papers, and other textual/visual materials by providing concise summaries, explanations, and an interactive Q&A interface.
 
 ## Features
 
